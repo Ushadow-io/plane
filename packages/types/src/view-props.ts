@@ -106,6 +106,7 @@ export const WORK_ITEM_FILTER_PROPERTY_KEYS = [
   "state_id",
   "cycle_id",
   "module_id",
+  "release_id",
   "project_id",
   "created_at",
   "updated_at",
@@ -136,6 +137,7 @@ export interface IIssueFilterOptions {
   priority?: string[] | null;
   cycle?: string[] | null;
   module?: string[] | null;
+  release?: string[] | null;
   project?: string[] | null;
   team_project?: string[] | null;
   start_date?: string[] | null;

@@ -144,6 +144,9 @@ class IssueFilterSet(BaseFilterSet):
     module_id = filters.UUIDFilter(method="filter_module_id")
     module_id__in = UUIDInFilter(method="filter_module_id_in", lookup_expr="in")
 
+    release_id = filters.UUIDFilter(method="filter_release_id")
+    release_id__in = UUIDInFilter(method="filter_release_id_in", lookup_expr="in")
+
     mention_id = filters.UUIDFilter(method="filter_mention_id")
     mention_id__in = UUIDInFilter(method="filter_mention_id_in", lookup_expr="in")
 
@@ -238,6 +241,20 @@ class IssueFilterSet(BaseFilterSet):
         return Q(
             issue_cycle__cycle_id__in=value,
             issue_cycle__deleted_at__isnull=True,
+        )
+
+    def filter_release_id(self, queryset, name, value):
+        """Filter by release ID, excluding soft deleted scope rows"""
+        return Q(
+            issue_releases__release_id=value,
+            issue_releases__deleted_at__isnull=True,
+        )
+
+    def filter_release_id_in(self, queryset, name, value):
+        """Filter by release IDs (in), excluding soft deleted scope rows"""
+        return Q(
+            issue_releases__release_id__in=value,
+            issue_releases__deleted_at__isnull=True,
         )
 
     def filter_module_id(self, queryset, name, value):

@@ -347,6 +347,26 @@ def filter_module(params, issue_filter, method, prefix=""):
     return issue_filter
 
 
+def filter_release(params, issue_filter, method, prefix=""):
+    """
+    Release membership. Mirrors filter_module: releases relate to work items
+    through a join table with soft deletes, so deleted_at must be checked or
+    removed scope keeps matching.
+    """
+    if method == "GET":
+        releases = [item for item in params.get("release").split(",") if item != "null"]
+        if "None" in releases:
+            issue_filter[f"{prefix}issue_releases__release_id__isnull"] = True
+        releases = filter_valid_uuids(releases)
+        if len(releases) and "" not in releases:
+            issue_filter[f"{prefix}issue_releases__release_id__in"] = releases
+    else:
+        if params.get("release", None) and len(params.get("release")) and params.get("release") != "null":
+            issue_filter[f"{prefix}issue_releases__release_id__in"] = params.get("release")
+    issue_filter[f"{prefix}issue_releases__deleted_at__isnull"] = True
+    return issue_filter
+
+
 def filter_intake_status(params, issue_filter, method, prefix=""):
     if method == "GET":
         status = [item for item in params.get("intake_status").split(",") if item != "null"]
@@ -449,6 +469,7 @@ def issue_filters(query_params, method, prefix=""):
         "project": filter_project,
         "cycle": filter_cycle,
         "module": filter_module,
+        "release": filter_release,
         "intake_status": filter_intake_status,
         "inbox_status": filter_inbox_status,
         "sub_issue": filter_sub_issue_toggle,

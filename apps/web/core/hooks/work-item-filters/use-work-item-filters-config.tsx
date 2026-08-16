@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useMemo } from "react";
-import { AtSign, Briefcase } from "lucide-react";
+import { useCallback, useMemo, useEffect } from "react";
+import { AtSign, Briefcase, Rocket } from "lucide-react";
 // plane imports
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import {
@@ -31,6 +31,7 @@ import type {
   IIssueLabel,
   IModule,
   IProject,
+  IRelease,
   TWorkItemFilterProperty,
 } from "@plane/types";
 import { Avatar } from "@plane/ui";
@@ -43,6 +44,7 @@ import {
   getLabelFilterConfig,
   getMentionFilterConfig,
   getModuleFilterConfig,
+  getReleaseFilterConfig,
   getPriorityFilterConfig,
   getProjectFilterConfig,
   getStartDateFilterConfig,
@@ -58,6 +60,7 @@ import { useCycle } from "@/hooks/store/use-cycle";
 import { useLabel } from "@/hooks/store/use-label";
 import { useMember } from "@/hooks/store/use-member";
 import { useModule } from "@/hooks/store/use-module";
+import { useRelease } from "@/hooks/store/use-release";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 // plane web imports
@@ -125,16 +128,31 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
     () => (cycleIds ? (cycleIds.map((cycleId) => getCycleById(cycleId)).filter((cycle) => cycle) as ICycle[]) : []),
     [cycleIds, getCycleById]
   );
+  const { currentWorkspaceReleaseIds, getReleaseById, fetchReleases } = useRelease();
+  // The filter needs options to offer. Releases are workspace-scoped and are
+  // not loaded by any project/cycle/module view, so nothing else would have
+  // fetched them by the time the filter renders -- the dropdown would exist
+  // and simply be empty.
+  useEffect(() => {
+    if (!workspaceSlug) return;
+    void fetchReleases(workspaceSlug.toString());
+  }, [workspaceSlug, fetchReleases]);
+
+  const releases = useMemo(
+    () =>
+      (currentWorkspaceReleaseIds ?? [])
+        .map((releaseId) => getReleaseById(releaseId))
+        .filter((release): release is IRelease => release !== null),
+    [currentWorkspaceReleaseIds, getReleaseById]
+  );
+
   const modules = useMemo(
     () =>
       moduleIds ? (moduleIds.map((moduleId) => getModuleById(moduleId)).filter((module) => module) as IModule[]) : [],
     [moduleIds, getModuleById]
   );
   const projects = useMemo(
-    () =>
-      projectIds
-        ? (projectIds.map((projectId) => getProjectById(projectId)).filter((project) => project) as IProject[])
-        : [],
+    () => (projectIds ? (projectIds.map((id) => getProjectById(id)).filter((item) => item) as IProject[]) : []),
     [projectIds, getProjectById]
   );
   const areAllConfigsInitialized = useMemo(() => isLoaderReady(projectLoader), [projectLoader]);
@@ -211,6 +229,23 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
         ...operatorConfigs,
       }),
     [isFilterEnabled, project?.module_view, modules, operatorConfigs]
+  );
+
+  // release filter config
+  //
+  // Deliberately not gated on a per-project feature toggle the way module and
+  // cycle are: releases are workspace-scoped, so they apply to work items in
+  // every project rather than only those with the feature switched on.
+  const releaseFilterConfig = useMemo(
+    () =>
+      getReleaseFilterConfig<TWorkItemFilterProperty>("release_id")({
+        isEnabled: isFilterEnabled("release_id"),
+        filterIcon: Rocket,
+        getOptionIcon: () => <Rocket className="h-3 w-3 flex-shrink-0" />,
+        releases: releases ?? [],
+        ...operatorConfigs,
+      }),
+    [isFilterEnabled, releases, operatorConfigs]
   );
 
   // assignee filter config
@@ -356,7 +391,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
         isEnabled: isFilterEnabled("project_id") && projects !== undefined,
         filterIcon: Briefcase,
         projects: projects,
-        getOptionIcon: (project) => <Logo logo={project.logo_props} size={12} />,
+        getOptionIcon: (projectOption) => <Logo logo={projectOption.logo_props} size={12} />,
         ...operatorConfigs,
       }),
     [isFilterEnabled, projects, operatorConfigs]
@@ -374,6 +409,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
       labelFilterConfig,
       cycleFilterConfig,
       moduleFilterConfig,
+      releaseFilterConfig,
       startDateFilterConfig,
       targetDateFilterConfig,
       createdAtFilterConfig,
@@ -388,6 +424,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
       label_id: labelFilterConfig,
       cycle_id: cycleFilterConfig,
       module_id: moduleFilterConfig,
+      release_id: releaseFilterConfig,
       assignee_id: assigneeFilterConfig,
       mention_id: mentionFilterConfig,
       created_by_id: createdByFilterConfig,
