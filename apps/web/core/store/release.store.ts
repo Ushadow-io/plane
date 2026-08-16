@@ -98,10 +98,17 @@ export class ReleaseStore implements IReleaseStore {
     const currentWorkspace = this.rootStore.workspaceRoot.currentWorkspace;
     if (!currentWorkspace) return null;
 
-    return Object.values(this.releaseMap ?? {})
-      .filter((release) => release.workspace === currentWorkspace.id)
-      .toSorted((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .map((release) => release.id);
+    // .sort() rather than .toSorted(): the array is already a fresh one from
+    // Object.values()/filter(), so there is nothing to mutate, and toSorted()
+    // needs lib es2023 which this tsconfig does not target. The lint autofix
+    // rewrites .sort() to .toSorted() on sight, hence the explicit disable --
+    // without it the fixer silently reintroduces a type error at commit time.
+    const releases: IRelease[] = Object.values(this.releaseMap ?? {}).filter(
+      (release) => release.workspace === currentWorkspace.id
+    );
+    // oxlint-disable-next-line prefer-array-to-sorted
+    releases.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return releases.map((release) => release.id);
   }
 
   getReleaseById = computedFn((releaseId: string) => this.releaseMap?.[releaseId] ?? null);
