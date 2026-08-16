@@ -9,6 +9,7 @@ from plane.app.views import (
     ReleaseTagViewSet,
     ReleaseViewSet,
     ReleaseWorkItemEndpoint,
+    WorkItemReleaseEndpoint,
 )
 
 # Releases are workspace-scoped by design: a release groups work from several
@@ -33,6 +34,11 @@ urlpatterns = [
         "workspaces/<str:slug>/releases/<uuid:release_id>/work-items/<uuid:work_item_id>/",
         ReleaseWorkItemEndpoint.as_view(),
         name="release-work-items",
+    ),
+    path(
+        "workspaces/<str:slug>/work-items/<uuid:work_item_id>/releases/",
+        WorkItemReleaseEndpoint.as_view(),
+        name="work-item-releases",
     ),
     path(
         "workspaces/<str:slug>/releases/<uuid:release_id>/changelog/",

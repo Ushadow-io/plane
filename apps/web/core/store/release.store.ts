@@ -20,6 +20,7 @@ export interface IReleaseStore {
   releaseTagMap: Record<string, IReleaseTag>;
   releaseWorkItemsMap: Record<string, TIssue[]>;
   changelogMap: Record<string, IReleaseChangelog>;
+  workItemReleasesMap: Record<string, string[]>;
   loader: boolean;
   // computed
   currentWorkspaceReleaseIds: string[] | null;
@@ -40,6 +41,9 @@ export interface IReleaseStore {
   // scope actions
   addWorkItems: (workspaceSlug: string, releaseId: string, workItemIds: string[]) => Promise<TReleaseScopeResult>;
   removeWorkItem: (workspaceSlug: string, releaseId: string, workItemId: string) => Promise<void>;
+  fetchReleasesForWorkItem: (workspaceSlug: string, workItemId: string) => Promise<string[]>;
+  setReleasesForWorkItem: (workspaceSlug: string, workItemId: string, releaseIds: string[]) => Promise<void>;
+  getReleaseIdsForWorkItem: (workItemId: string) => string[];
   updateChangelog: (
     workspaceSlug: string,
     releaseId: string,
@@ -53,6 +57,7 @@ export class ReleaseStore implements IReleaseStore {
   releaseTagMap: Record<string, IReleaseTag> = {};
   releaseWorkItemsMap: Record<string, TIssue[]> = {};
   changelogMap: Record<string, IReleaseChangelog> = {};
+  workItemReleasesMap: Record<string, string[]> = {};
   loader = false;
   // root store
   rootStore;
@@ -65,6 +70,7 @@ export class ReleaseStore implements IReleaseStore {
       releaseTagMap: observable,
       releaseWorkItemsMap: observable,
       changelogMap: observable,
+      workItemReleasesMap: observable,
       loader: observable.ref,
       currentWorkspaceReleaseIds: computed,
       fetchReleases: action,
@@ -77,6 +83,8 @@ export class ReleaseStore implements IReleaseStore {
       deleteRelease: action,
       addWorkItems: action,
       removeWorkItem: action,
+      fetchReleasesForWorkItem: action,
+      setReleasesForWorkItem: action,
       updateChangelog: action,
     });
 
@@ -223,6 +231,32 @@ export class ReleaseStore implements IReleaseStore {
       )
     );
     await this.fetchReleaseDetails(workspaceSlug, releaseId);
+  }
+
+  getReleaseIdsForWorkItem = computedFn((workItemId: string) => this.workItemReleasesMap?.[workItemId] ?? []);
+
+  async fetchReleasesForWorkItem(workspaceSlug: string, workItemId: string) {
+    const response = await this.releaseService.getReleasesForWorkItem(workspaceSlug, workItemId);
+    runInAction(() => set(this.workItemReleasesMap, [workItemId], response));
+    return response;
+  }
+
+  async setReleasesForWorkItem(workspaceSlug: string, workItemId: string, releaseIds: string[]) {
+    const previous = this.workItemReleasesMap[workItemId] ?? [];
+    try {
+      runInAction(() => set(this.workItemReleasesMap, [workItemId], releaseIds));
+      const response = await this.releaseService.setReleasesForWorkItem(workspaceSlug, workItemId, releaseIds);
+      runInAction(() => set(this.workItemReleasesMap, [workItemId], response.releases));
+      // Progress counters live on the release, so every affected one is stale now.
+      await Promise.all(
+        Array.from(new Set([...previous, ...response.releases])).map((releaseId) =>
+          this.fetchReleaseDetails(workspaceSlug, releaseId).catch(() => undefined)
+        )
+      );
+    } catch (error) {
+      runInAction(() => set(this.workItemReleasesMap, [workItemId], previous));
+      throw error;
+    }
   }
 
   async updateChangelog(workspaceSlug: string, releaseId: string, data: Partial<IReleaseChangelog>) {

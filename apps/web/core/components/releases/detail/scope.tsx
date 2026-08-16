@@ -9,7 +9,9 @@ import { useState } from "react";
 import useSWR from "swr";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import type { ISearchIssueResponse } from "@plane/types";
 import { Loader } from "@plane/ui";
+import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 import { useRelease } from "@/hooks/store/use-release";
 
 type Props = {
@@ -20,8 +22,9 @@ type Props = {
 
 export const ReleaseScope = observer(function ReleaseScope(props: Props) {
   const { workspaceSlug, releaseId, canEdit } = props;
-  const { fetchReleaseWorkItems, getWorkItemsForRelease, removeWorkItem } = useRelease();
+  const { fetchReleaseWorkItems, getWorkItemsForRelease, removeWorkItem, addWorkItems } = useRelease();
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const { isLoading } = useSWR(
     workspaceSlug && releaseId ? `RELEASE_WORK_ITEMS_${workspaceSlug}_${releaseId}` : null,
@@ -41,6 +44,50 @@ export const ReleaseScope = observer(function ReleaseScope(props: Props) {
     }
   };
 
+  const handleAdd = async (data: ISearchIssueResponse[]) => {
+    if (!data.length) return;
+    try {
+      const result = await addWorkItems(
+        workspaceSlug,
+        releaseId,
+        data.map((item) => item.id)
+      );
+      // The server decides what actually landed: items in projects this user
+      // cannot see are refused. Reporting only "added" would make a partial
+      // result look like a complete one.
+      if (result.skipped_no_access > 0) {
+        setToast({
+          type: TOAST_TYPE.WARNING,
+          title: "Partially added",
+          message: `${result.added} added. ${result.skipped_no_access} skipped — you do not have access to their project.`,
+        });
+      } else {
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Added",
+          message: `${result.added} work item${result.added === 1 ? "" : "s"} added to this release.`,
+        });
+      }
+    } catch {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Error", message: "Could not add the work items." });
+    }
+  };
+
+  const picker = (
+    <ExistingIssuesListModal
+      workspaceSlug={workspaceSlug}
+      isOpen={isPickerOpen}
+      handleClose={() => setIsPickerOpen(false)}
+      searchParams={{ target_date: undefined }}
+      handleOnSubmit={handleAdd}
+      selectedWorkItemIds={workItems.map((item) => item.id)}
+      // Releases span projects, so the picker must be able to as well --
+      // without this it would silently scope the search to one project and a
+      // cross-project release would be impossible to assemble from here.
+      workspaceLevelToggle
+    />
+  );
+
   if (isLoading) {
     return (
       <Loader className="flex flex-col gap-2 py-6">
@@ -53,18 +100,34 @@ export const ReleaseScope = observer(function ReleaseScope(props: Props) {
 
   if (workItems.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-        <p className="text-14 font-medium text-primary">Nothing in scope yet</p>
-        <p className="max-w-md text-13 text-tertiary">
-          Add work items to this release to track what is shipping in it. You can also let the release-notes tooling
-          propose everything completed since your last release.
-        </p>
-      </div>
+      <>
+        {picker}
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <p className="text-14 font-medium text-primary">Nothing in scope yet</p>
+          <p className="max-w-md text-13 text-tertiary">
+            Add work items to this release to track what is shipping in it. You can also let the release-notes tooling
+            propose everything completed since your last release.
+          </p>
+          {canEdit && (
+            <Button variant="primary" size="sm" onClick={() => setIsPickerOpen(true)}>
+              Add work items
+            </Button>
+          )}
+        </div>
+      </>
     );
   }
 
   return (
     <div className="flex flex-col py-4">
+      {picker}
+      {canEdit && (
+        <div className="flex justify-end pb-2">
+          <Button variant="secondary" size="sm" onClick={() => setIsPickerOpen(true)}>
+            Add work items
+          </Button>
+        </div>
+      )}
       {/*
         Only work items in projects the viewer belongs to are returned by the
         API, so this list can legitimately be shorter than the release's

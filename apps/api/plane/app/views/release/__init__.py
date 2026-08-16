@@ -7,4 +7,5 @@ from .base import (
     ReleaseTagViewSet,
     ReleaseViewSet,
     ReleaseWorkItemEndpoint,
+    WorkItemReleaseEndpoint,
 )
