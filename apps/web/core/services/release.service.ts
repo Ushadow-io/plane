@@ -5,7 +5,15 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
-import type { IRelease, IReleaseChangelog, IReleaseTag, TIssue, TReleaseScopeResult } from "@plane/types";
+import type {
+  IRelease,
+  IReleaseChangelog,
+  IReleaseTag,
+  ISearchIssueResponse,
+  TIssue,
+  TProjectIssuesSearchParams,
+  TReleaseScopeResult,
+} from "@plane/types";
 import { APIService } from "@/services/api.service";
 
 /**
@@ -125,6 +133,22 @@ export class ReleaseService extends APIService {
     data: Partial<IReleaseChangelog>
   ): Promise<IReleaseChangelog> {
     return this.post(`/api/workspaces/${workspaceSlug}/releases/${releaseId}/changelog/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Work-item search across the whole workspace.
+   *
+   * The stock picker falls back to a project-scoped search service and simply
+   * does nothing when no projectId is given -- it returns before searching, so
+   * the box stays empty with no error. Releases span projects and therefore
+   * pass no projectId, so they must supply this instead.
+   */
+  async searchWorkItems(workspaceSlug: string, params: TProjectIssuesSearchParams): Promise<ISearchIssueResponse[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/search-issues/`, { params })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

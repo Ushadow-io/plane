@@ -159,3 +159,50 @@ class IssueSearchEndpoint(BaseAPIView):
             )[:100],
             status=status.HTTP_200_OK,
         )
+
+
+class WorkspaceIssueSearchEndpoint(IssueSearchEndpoint):
+    """
+    Work item search across a whole workspace.
+
+    The project-scoped endpoint already supports workspace_search=true, but it
+    takes project_id from the URL, so there is no way to search without naming
+    a project. Releases span projects, so their work-item picker needs exactly
+    that: a search with no project to anchor to.
+
+    Access is unchanged -- results are still restricted to projects the caller
+    is an active member of, which is the same rule the project endpoint applies.
+    """
+
+    def get(self, request, slug):
+        query = request.query_params.get("search", False)
+
+        issues = Issue.issue_objects.filter(
+            workspace__slug=slug,
+            project__project_projectmember__member=request.user,
+            project__project_projectmember__is_active=True,
+            project__archived_at__isnull=True,
+        )
+
+        if query:
+            issues = self.search_issues_by_query(query, issues)
+
+        if request.query_params.get("target_date") == "none":
+            issues = self.filter_issues_without_target_date(issues)
+
+        return Response(
+            issues.distinct().values(
+                "name",
+                "id",
+                "start_date",
+                "sequence_id",
+                "project__name",
+                "project__identifier",
+                "project_id",
+                "workspace__slug",
+                "state__name",
+                "state__group",
+                "state__color",
+            )[:100],
+            status=status.HTTP_200_OK,
+        )
