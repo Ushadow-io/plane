@@ -6,6 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useState } from "react";
+import { useParams } from "react-router";
 import useSWR from "swr";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Button } from "@plane/propel/button";
@@ -20,19 +21,18 @@ import {
 } from "@/components/releases";
 import { useRelease } from "@/hooks/store/use-release";
 import { useUserPermissions } from "@/hooks/store/user";
-import type { Route } from "./+types/page";
 
 const TABS = ["Overview", "Scope", "Changelog"] as const;
 type TTab = (typeof TABS)[number];
 
-// Route params arrive as props, not from useParams(). This is not a style
-// preference: useParams() returned nothing here, so the SWR key stayed null,
-// no fetch ever fired, and the page rendered "Release not found" for a release
-// that existed -- a failure that looks like missing data rather than a missing
-// parameter. Every other page in this app takes Route.ComponentProps.
-function ReleaseDetailPage({ params }: Route.ComponentProps) {
-  const slug = params.workspaceSlug ?? "";
-  const id = params.releaseId ?? "";
+function ReleaseDetailPage() {
+  // useParams(), not the Route.ComponentProps params prop. The props route
+  // params arrive empty in this app, which leaves the SWR key null so no
+  // request is ever made and the page reports "Release not found" for a
+  // release that exists -- a missing parameter that looks like missing data.
+  const { workspaceSlug, releaseId } = useParams();
+  const slug = workspaceSlug?.toString() ?? "";
+  const id = releaseId?.toString() ?? "";
 
   const { fetchReleaseDetails, getReleaseById } = useRelease();
   const { allowPermissions } = useUserPermissions();
