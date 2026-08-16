@@ -238,3 +238,10 @@ from .notification.base import MarkAllReadNotificationViewSet
 from .user.base import AccountEndpoint, ProfileEndpoint, UserSessionEndpoint
 
 from .timezone.base import TimezoneEndpoint
+
+from .release.base import (
+    ReleaseChangelogEndpoint,
+    ReleaseTagViewSet,
+    ReleaseViewSet,
+    ReleaseWorkItemEndpoint,
+)

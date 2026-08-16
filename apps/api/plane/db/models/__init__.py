@@ -90,3 +90,11 @@ from .device import Device, DeviceSession
 from .sticky import Sticky
 
 from .description import Description, DescriptionVersion
+
+from .release import (
+    Release,
+    ReleaseChangelog,
+    ReleaseStatus,
+    ReleaseTag,
+    ReleaseWorkItem,
+)
