@@ -16,6 +16,7 @@ import {
   ViewsIcon,
   YourWorkIcon,
 } from "@plane/propel/icons";
+import { Rocket } from "lucide-react";
 import { cn } from "@plane/utils";
 
 export const getSidebarNavigationItemIcon = (key: string, className: string = "") => {
@@ -30,6 +31,8 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
       return <ViewsIcon className={cn("size-4 flex-shrink-0", className)} />;
     case "active_cycles":
       return <CycleIcon className={cn("size-4 flex-shrink-0", className)} />;
+    case "releases":
+      return <Rocket className={cn("size-4 flex-shrink-0", className)} />;
     case "analytics":
       return <AnalyticsIcon className={cn("size-4 flex-shrink-0", className)} />;
     case "your_work":
