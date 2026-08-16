@@ -135,3 +135,12 @@ from .draft import (
     DraftIssueSerializer,
     DraftIssueDetailSerializer,
 )
+
+from .release import (
+    ReleaseChangelogSerializer,
+    ReleaseLiteSerializer,
+    ReleaseSerializer,
+    ReleaseTagSerializer,
+    ReleaseWorkItemSerializer,
+    ReleaseWriteSerializer,
+)
