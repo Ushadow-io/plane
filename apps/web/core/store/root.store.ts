@@ -58,6 +58,8 @@ import type { IProjectPageStore } from "./pages/project-page.store";
 import { ProjectPageStore } from "./pages/project-page.store";
 import type { IProjectRootStore } from "./project";
 import { ProjectRootStore } from "./project";
+import type { IReleaseStore } from "./release.store";
+import { ReleaseStore } from "./release.store";
 import type { IProjectViewStore } from "./project-view.store";
 import { ProjectViewStore } from "./project-view.store";
 import type { IRouterStore } from "./router.store";
@@ -81,6 +83,7 @@ export class CoreRootStore {
   module: IModuleStore;
   moduleFilter: IModuleFilterStore;
   projectView: IProjectViewStore;
+  release: IReleaseStore;
   globalView: IGlobalViewStore;
   issue: IIssueRootStore;
   state: IStateStore;
@@ -118,6 +121,7 @@ export class CoreRootStore {
     this.module = new ModulesStore(this);
     this.moduleFilter = new ModuleFilterStore(this);
     this.projectView = new ProjectViewStore(this);
+    this.release = new ReleaseStore(this);
     this.globalView = new GlobalViewStore(this);
     this.issue = new IssueRootStore(this);
     this.state = new StateStore(this);
@@ -153,6 +157,7 @@ export class CoreRootStore {
     this.module = new ModulesStore(this);
     this.moduleFilter = new ModuleFilterStore(this);
     this.projectView = new ProjectViewStore(this);
+    this.release = new ReleaseStore(this);
     this.globalView = new GlobalViewStore(this);
     this.issue = new IssueRootStore(this);
     this.state = new StateStore(this);
