@@ -6,7 +6,6 @@
 
 import { observer } from "mobx-react";
 import { useState } from "react";
-import { useParams } from "react-router";
 import useSWR from "swr";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Button } from "@plane/propel/button";
@@ -19,6 +18,7 @@ import {
   ReleaseScope,
   ReleaseStatusBadge,
 } from "@/components/releases";
+import { useReleaseRoute } from "@/components/releases/use-release-route";
 import { useRelease } from "@/hooks/store/use-release";
 import { useUserPermissions } from "@/hooks/store/user";
 
@@ -26,13 +26,7 @@ const TABS = ["Overview", "Scope", "Changelog"] as const;
 type TTab = (typeof TABS)[number];
 
 function ReleaseDetailPage() {
-  // useParams(), not the Route.ComponentProps params prop. The props route
-  // params arrive empty in this app, which leaves the SWR key null so no
-  // request is ever made and the page reports "Release not found" for a
-  // release that exists -- a missing parameter that looks like missing data.
-  const { workspaceSlug, releaseId } = useParams();
-  const slug = workspaceSlug?.toString() ?? "";
-  const id = releaseId?.toString() ?? "";
+  const { workspaceSlug: slug, releaseId: id } = useReleaseRoute();
 
   const { fetchReleaseDetails, getReleaseById } = useRelease();
   const { allowPermissions } = useUserPermissions();

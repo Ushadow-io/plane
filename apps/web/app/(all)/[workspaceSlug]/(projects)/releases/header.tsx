@@ -6,16 +6,16 @@
 
 import { observer } from "mobx-react";
 import { useState } from "react";
-import { useParams } from "react-router";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { Breadcrumbs, Header } from "@plane/ui";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { ReleaseModal } from "@/components/releases";
+import { useReleaseRoute } from "@/components/releases/use-release-route";
 import { useUserPermissions } from "@/hooks/store/user";
 
 export const ReleasesHeader = observer(function ReleasesHeader() {
-  const { workspaceSlug } = useParams();
+  const { workspaceSlug } = useReleaseRoute();
   const { allowPermissions } = useUserPermissions();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -41,11 +41,7 @@ export const ReleasesHeader = observer(function ReleasesHeader() {
         )}
       </Header>
 
-      <ReleaseModal
-        isOpen={isModalOpen}
-        workspaceSlug={workspaceSlug?.toString() ?? ""}
-        onClose={() => setIsModalOpen(false)}
-      />
+      <ReleaseModal isOpen={isModalOpen} workspaceSlug={workspaceSlug} onClose={() => setIsModalOpen(false)} />
     </>
   );
 });
