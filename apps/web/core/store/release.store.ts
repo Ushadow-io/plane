@@ -91,8 +91,27 @@ export class ReleaseStore implements IReleaseStore {
     this.rootStore = _rootStore;
     this.releaseService = new ReleaseService();
 
+    // Every method is bound, not just the two that happened to be called as
+    // callbacks. Consumers destructure these off the store
+    // (`const { fetchReleases } = useRelease()`), which detaches `this` -- an
+    // unbound method then fails on its first `this.` access with "Cannot set
+    // properties of undefined". That failure is invisible in practice: the
+    // rejected promise is swallowed by the caller's error handling and the
+    // page renders a normal empty state, so a workspace with releases looks
+    // exactly like a workspace without any.
+    this.fetchReleases = this.fetchReleases.bind(this);
+    this.fetchReleaseDetails = this.fetchReleaseDetails.bind(this);
+    this.fetchReleaseWorkItems = this.fetchReleaseWorkItems.bind(this);
+    this.fetchChangelog = this.fetchChangelog.bind(this);
+    this.fetchReleaseTags = this.fetchReleaseTags.bind(this);
     this.createRelease = this.createRelease.bind(this);
     this.updateRelease = this.updateRelease.bind(this);
+    this.deleteRelease = this.deleteRelease.bind(this);
+    this.addWorkItems = this.addWorkItems.bind(this);
+    this.removeWorkItem = this.removeWorkItem.bind(this);
+    this.updateChangelog = this.updateChangelog.bind(this);
+    this.fetchReleasesForWorkItem = this.fetchReleasesForWorkItem.bind(this);
+    this.setReleasesForWorkItem = this.setReleasesForWorkItem.bind(this);
   }
 
   /**
