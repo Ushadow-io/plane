@@ -50,6 +50,11 @@ class WorkspaceUserPreferenceViewSet(BaseAPIView):
                                     WorkspaceUserPreference.UserPreferenceKeys.DRAFTS,
                                     WorkspaceUserPreference.UserPreferenceKeys.YOUR_WORK,
                                     WorkspaceUserPreference.UserPreferenceKeys.STICKIES,
+                                    # Pinned by default: Releases is the reason
+                                    # this fork exists, and an unpinned new item
+                                    # is invisible until someone thinks to look
+                                    # under "More".
+                                    WorkspaceUserPreference.UserPreferenceKeys.RELEASES,
                                 ]
                                 else False
                             ),
