@@ -145,6 +145,72 @@ class ReleaseViewSet(BaseViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class WorkItemReleaseEndpoint(BaseAPIView):
+    """
+    The same association seen from the work item's side.
+
+    Releases are set as a whole list rather than added one at a time, because
+    this backs a multi-select property on the work item: the UI knows the set it
+    wants, not the delta. Doing the diff here keeps the two directions
+    consistent -- adding from the release's Scope tab and adding from the work
+    item's Releases property end up at the same rows.
+    """
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    def get(self, request, slug, work_item_id):
+        release_ids = ReleaseWorkItem.objects.filter(work_item_id=work_item_id, workspace__slug=slug).values_list(
+            "release_id", flat=True
+        )
+        return Response([str(rid) for rid in release_ids], status=status.HTTP_200_OK)
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def post(self, request, slug, work_item_id):
+        requested = set(request.data.get("releases", []))
+
+        work_item = Issue.issue_objects.filter(
+            pk=work_item_id,
+            workspace__slug=slug,
+            project_id__in=accessible_project_ids(request.user, slug),
+        ).first()
+        if work_item is None:
+            return Response(
+                {"error": "Work item not found, or you do not have access to its project."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Releases are workspace-scoped, so the only check needed is that they
+        # belong to THIS workspace -- otherwise a crafted id could pull a work
+        # item into another tenant's release.
+        valid = set(
+            str(rid)
+            for rid in Release.objects.filter(pk__in=requested, workspace__slug=slug).values_list("pk", flat=True)
+        )
+
+        with transaction.atomic():
+            existing = set(
+                str(rid)
+                for rid in ReleaseWorkItem.objects.filter(work_item=work_item).values_list("release_id", flat=True)
+            )
+            ReleaseWorkItem.objects.filter(work_item=work_item, release_id__in=existing - valid).delete()
+            ReleaseWorkItem.objects.bulk_create(
+                [
+                    ReleaseWorkItem(release_id=rid, work_item=work_item, workspace_id=work_item.workspace_id)
+                    for rid in valid - existing
+                ],
+                batch_size=100,
+            )
+
+        return Response(
+            {
+                "releases": sorted(valid),
+                "added": len(valid - existing),
+                "removed": len(existing - valid),
+                "skipped_not_in_workspace": len(requested) - len(valid),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class ReleaseWorkItemEndpoint(BaseAPIView):
     """Manage the scope of a release -- which work items ship in it."""
 

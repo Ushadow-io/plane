@@ -40,7 +40,9 @@ import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 import { IssueCycleSelect } from "./cycle-select";
 import { IssueLabel } from "./label";
+import { Rocket } from "lucide-react";
 import { IssueModuleSelect } from "./module-select";
+import { IssueReleaseSelect } from "./release-select";
 import type { TIssueOperations } from "./root";
 
 type Props = {
@@ -215,6 +217,18 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                 />
               </SidebarPropertyListItem>
             )}
+
+            {/* Releases are workspace-scoped, so unlike modules and cycles this
+                is not gated on a per-project feature toggle -- a release can
+                contain work from any project in the workspace. */}
+            <SidebarPropertyListItem icon={Rocket} label="Releases">
+              <IssueReleaseSelect
+                className="w-full grow"
+                workspaceSlug={workspaceSlug}
+                issueId={issueId}
+                disabled={!isEditable}
+              />
+            </SidebarPropertyListItem>
 
             {projectDetails?.cycle_view && (
               <SidebarPropertyListItem icon={CycleIcon} label={t("common.cycle")} appendElement={null}>

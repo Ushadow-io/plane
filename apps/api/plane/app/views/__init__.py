@@ -244,4 +244,5 @@ from .release.base import (
     ReleaseTagViewSet,
     ReleaseViewSet,
     ReleaseWorkItemEndpoint,
+    WorkItemReleaseEndpoint,
 )

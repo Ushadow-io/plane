@@ -87,6 +87,30 @@ export class ReleaseService extends APIService {
       });
   }
 
+  /** The same association from the work item's side — returns release ids. */
+  async getReleasesForWorkItem(workspaceSlug: string, workItemId: string): Promise<string[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/work-items/${workItemId}/releases/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /** Sets the whole list, not a delta — the property is a multi-select. */
+  async setReleasesForWorkItem(
+    workspaceSlug: string,
+    workItemId: string,
+    releaseIds: string[]
+  ): Promise<{ releases: string[]; added: number; removed: number }> {
+    return this.post(`/api/workspaces/${workspaceSlug}/work-items/${workItemId}/releases/`, {
+      releases: releaseIds,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async getChangelog(workspaceSlug: string, releaseId: string): Promise<IReleaseChangelog> {
     return this.get(`/api/workspaces/${workspaceSlug}/releases/${releaseId}/changelog/`)
       .then((response) => response?.data)
