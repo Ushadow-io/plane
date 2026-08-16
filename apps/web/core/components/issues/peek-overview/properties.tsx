@@ -40,7 +40,9 @@ import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import type { TIssueOperations } from "../issue-detail";
 import { IssueCycleSelect } from "../issue-detail/cycle-select";
 import { IssueLabel } from "../issue-detail/label";
+import { Rocket } from "lucide-react";
 import { IssueModuleSelect } from "../issue-detail/module-select";
+import { IssueReleaseSelect } from "../issue-detail/release-select";
 
 interface IPeekOverviewProperties {
   workspaceSlug: string;
@@ -215,6 +217,17 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
             />
           </SidebarPropertyListItem>
         )}
+
+        {/* Not gated on a per-project feature flag, unlike modules and cycles:
+            releases are workspace-scoped and can hold work from any project. */}
+        <SidebarPropertyListItem icon={Rocket} label="Releases">
+          <IssueReleaseSelect
+            className="w-full grow"
+            workspaceSlug={workspaceSlug}
+            issueId={issueId}
+            disabled={disabled}
+          />
+        </SidebarPropertyListItem>
 
         {projectDetails?.cycle_view && (
           <SidebarPropertyListItem icon={CycleIcon} label={t("common.cycle")} appendElement={null}>
