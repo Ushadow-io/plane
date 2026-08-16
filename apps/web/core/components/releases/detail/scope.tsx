@@ -5,8 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { useState } from "react";
-import useSWR from "swr";
+import { useEffect, useState } from "react";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { ISearchIssueResponse } from "@plane/types";
@@ -26,10 +25,18 @@ export const ReleaseScope = observer(function ReleaseScope(props: Props) {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
-  const { isLoading } = useSWR(
-    workspaceSlug && releaseId ? `RELEASE_WORK_ITEMS_${workspaceSlug}_${releaseId}` : null,
-    workspaceSlug && releaseId ? () => fetchReleaseWorkItems(workspaceSlug, releaseId) : null
-  );
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    if (!workspaceSlug || !releaseId) return;
+    let cancelled = false;
+    setIsLoading(true);
+    fetchReleaseWorkItems(workspaceSlug, releaseId).finally(() => {
+      if (!cancelled) setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceSlug, releaseId, fetchReleaseWorkItems]);
 
   const workItems = getWorkItemsForRelease(releaseId);
 

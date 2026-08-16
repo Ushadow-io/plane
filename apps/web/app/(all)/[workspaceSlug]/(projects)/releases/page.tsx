@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import useSWR from "swr";
+import { useEffect, useState } from "react";
 import { Loader } from "@plane/ui";
 import { PageHead } from "@/components/core/page-title";
 import { ReleaseListItem } from "@/components/releases";
@@ -16,7 +16,22 @@ function ReleasesPage() {
   const { workspaceSlug: slug } = useReleaseRoute();
   const { fetchReleases, currentWorkspaceReleaseIds, getReleaseById } = useRelease();
 
-  const { isLoading } = useSWR(slug ? `WORKSPACE_RELEASES_${slug}` : null, slug ? () => fetchReleases(slug) : null);
+  // Plain effect rather than useSWR: the SWR fetcher did not run in these
+  // components, which left the page rendering "No releases yet" against a
+  // workspace that had releases -- a silent empty state, not an error. An
+  // effect is deterministic and the loading flag is owned locally.
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    if (!slug) return;
+    let cancelled = false;
+    setIsLoading(true);
+    fetchReleases(slug).finally(() => {
+      if (!cancelled) setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, fetchReleases]);
 
   const releaseIds = currentWorkspaceReleaseIds;
 

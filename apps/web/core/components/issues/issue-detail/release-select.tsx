@@ -5,8 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { useState } from "react";
-import useSWR from "swr";
+import { useEffect, useState } from "react";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { cn } from "@plane/utils";
 import { useRelease } from "@/hooks/store/use-release";
@@ -41,14 +40,15 @@ export const IssueReleaseSelect = observer(function IssueReleaseSelect(props: Pr
   } = useRelease();
   const [isOpen, setIsOpen] = useState(false);
 
-  useSWR(
-    workspaceSlug ? `WORKSPACE_RELEASES_${workspaceSlug}` : null,
-    workspaceSlug ? () => fetchReleases(workspaceSlug) : null
-  );
-  useSWR(
-    workspaceSlug && issueId ? `WORK_ITEM_RELEASES_${workspaceSlug}_${issueId}` : null,
-    workspaceSlug && issueId ? () => fetchReleasesForWorkItem(workspaceSlug, issueId) : null
-  );
+  useEffect(() => {
+    if (!workspaceSlug) return;
+    void fetchReleases(workspaceSlug);
+  }, [workspaceSlug, fetchReleases]);
+
+  useEffect(() => {
+    if (!workspaceSlug || !issueId) return;
+    void fetchReleasesForWorkItem(workspaceSlug, issueId);
+  }, [workspaceSlug, issueId, fetchReleasesForWorkItem]);
 
   const selectedIds = getReleaseIdsForWorkItem(issueId);
   const availableIds = currentWorkspaceReleaseIds ?? [];

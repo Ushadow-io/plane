@@ -6,7 +6,6 @@
 
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
-import useSWR from "swr";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Loader } from "@plane/ui";
@@ -34,10 +33,18 @@ export const ReleaseChangelog = observer(function ReleaseChangelog(props: Props)
   const [draft, setDraft] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { isLoading } = useSWR(
-    workspaceSlug && releaseId ? `RELEASE_CHANGELOG_${workspaceSlug}_${releaseId}` : null,
-    workspaceSlug && releaseId ? () => fetchChangelog(workspaceSlug, releaseId) : null
-  );
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    if (!workspaceSlug || !releaseId) return;
+    let cancelled = false;
+    setIsLoading(true);
+    fetchChangelog(workspaceSlug, releaseId).finally(() => {
+      if (!cancelled) setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceSlug, releaseId, fetchChangelog]);
 
   const stored = changelogMap[releaseId]?.description_html ?? "";
   // Seed the editable draft once the fetch lands, without clobbering in-progress

@@ -5,8 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { useState } from "react";
-import useSWR from "swr";
+import { useEffect, useState } from "react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { Loader } from "@plane/ui";
@@ -35,10 +34,19 @@ function ReleaseDetailPage() {
 
   const canEdit = allowPermissions([EUserPermissions.ADMIN, EUserPermissions.MEMBER], EUserPermissionsLevel.WORKSPACE);
 
-  const { isLoading } = useSWR(
-    slug && id ? `RELEASE_DETAIL_${slug}_${id}` : null,
-    slug && id ? () => fetchReleaseDetails(slug, id) : null
-  );
+  // See the list page: useSWR's fetcher does not run in these components.
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    if (!slug || !id) return;
+    let cancelled = false;
+    setIsLoading(true);
+    fetchReleaseDetails(slug, id).finally(() => {
+      if (!cancelled) setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, id, fetchReleaseDetails]);
 
   const release = getReleaseById(id);
 
