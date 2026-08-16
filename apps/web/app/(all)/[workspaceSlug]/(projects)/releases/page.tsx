@@ -5,16 +5,15 @@
  */
 
 import { observer } from "mobx-react";
-import { useParams } from "react-router";
 import useSWR from "swr";
 import { Loader } from "@plane/ui";
 import { PageHead } from "@/components/core/page-title";
 import { ReleaseListItem } from "@/components/releases";
+import { useReleaseRoute } from "@/components/releases/use-release-route";
 import { useRelease } from "@/hooks/store/use-release";
 
 function ReleasesPage() {
-  const { workspaceSlug } = useParams();
-  const slug = workspaceSlug?.toString() ?? "";
+  const { workspaceSlug: slug } = useReleaseRoute();
   const { fetchReleases, currentWorkspaceReleaseIds, getReleaseById } = useRelease();
 
   const { isLoading } = useSWR(slug ? `WORKSPACE_RELEASES_${slug}` : null, slug ? () => fetchReleases(slug) : null);
