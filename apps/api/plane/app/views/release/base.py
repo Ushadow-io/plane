@@ -86,8 +86,7 @@ class ReleaseViewSet(BaseViewSet):
                 ),
                 pending_work_items=Count(
                     "release_work_items",
-                    filter=live_scope
-                    & ~Q(release_work_items__work_item__state__group__in=["completed", "cancelled"]),
+                    filter=live_scope & ~Q(release_work_items__work_item__state__group__in=["completed", "cancelled"]),
                     distinct=True,
                 ),
             )

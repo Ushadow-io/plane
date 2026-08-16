@@ -14,6 +14,7 @@ from plane.db.models import (
     ReleaseWorkItem,
     User,
 )
+from plane.utils.release import validate_release_references
 from .base import BaseSerializer, DynamicBaseSerializer
 
 
@@ -63,6 +64,14 @@ class ReleaseWriteSerializer(BaseSerializer):
             "updated_at",
             "deleted_at",
         ]
+
+    def validate(self, data):
+        # Resolve the tenant from the instance on update, from context on create.
+        workspace_id = self.instance.workspace_id if self.instance else self.context["workspace"].id
+        errors = validate_release_references(workspace_id, tag=data.get("tag"), lead=data.get("lead"))
+        if errors:
+            raise serializers.ValidationError(errors)
+        return data
 
     def _write_description(self, release, validated_data):
         """Push flat rich-text fields down onto the related Description row."""
