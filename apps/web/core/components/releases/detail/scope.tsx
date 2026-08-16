@@ -8,10 +8,13 @@ import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { ISearchIssueResponse } from "@plane/types";
+import type { ISearchIssueResponse, TProjectIssuesSearchParams } from "@plane/types";
 import { Loader } from "@plane/ui";
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 import { useRelease } from "@/hooks/store/use-release";
+import { ReleaseService } from "@/services/release.service";
+
+const releaseService = new ReleaseService();
 
 type Props = {
   workspaceSlug: string;
@@ -88,9 +91,13 @@ export const ReleaseScope = observer(function ReleaseScope(props: Props) {
       searchParams={{ target_date: undefined }}
       handleOnSubmit={handleAdd}
       selectedWorkItemIds={workItems.map((item) => item.id)}
-      // Releases span projects, so the picker must be able to as well --
-      // without this it would silently scope the search to one project and a
-      // cross-project release would be impossible to assemble from here.
+      // Required, not optional. With no projectId the picker's default search
+      // service is undefined and handleSearch returns before searching, so the
+      // list stays empty and nothing reports a problem.
+      workItemSearchServiceCallback={(params: TProjectIssuesSearchParams) =>
+        releaseService.searchWorkItems(workspaceSlug, params)
+      }
+      // Releases span projects, so the picker must be able to as well.
       workspaceLevelToggle
     />
   );

@@ -176,7 +176,7 @@ from .page.base import (
 from .page.version import PageVersionEndpoint
 
 from .search.base import GlobalSearchEndpoint, SearchEndpoint
-from .search.issue import IssueSearchEndpoint
+from .search.issue import IssueSearchEndpoint, WorkspaceIssueSearchEndpoint
 
 
 from .external.base import (
