@@ -72,3 +72,12 @@ from .user import UserEndpoint
 from .invite import WorkspaceInvitationsViewset
 
 from .sticky import StickyViewSet
+
+from .release import (
+    ReleaseCandidateAPIEndpoint,
+    ReleaseChangelogAPIEndpoint,
+    ReleaseDetailAPIEndpoint,
+    ReleaseListCreateAPIEndpoint,
+    ReleaseTagAPIEndpoint,
+    ReleaseWorkItemAPIEndpoint,
+)
