@@ -16,7 +16,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 # Module imports
-from plane.utils.order_queryset import ISSUE_GROUP_BY_ALLOWLIST
+from plane.utils.order_queryset import ISSUE_GROUP_BY_ALLOWLIST, RELEASE_GROUP_KEY
 
 
 class Cursor:
@@ -198,6 +198,10 @@ class GroupedOffsetPaginator(OffsetPaginator):
         "labels__id": "label_ids",
         "assignees__id": "assignee_ids",
         "issue_module__module_id": "module_ids",
+        # A work item can belong to several releases (ReleaseWorkItem), so
+        # release must take the multi-grouper path — otherwise the single-value
+        # grouper runs and never re-emits release_ids onto each result.
+        RELEASE_GROUP_KEY: "release_ids",
     }
 
     def __init__(
@@ -393,6 +397,8 @@ class SubGroupedOffsetPaginator(OffsetPaginator):
         "labels__id": "label_ids",
         "assignees__id": "assignee_ids",
         "issue_module__module_id": "module_ids",
+        # See GroupedOffsetPaginator.FIELD_MAPPER.
+        RELEASE_GROUP_KEY: "release_ids",
     }
 
     def __init__(
@@ -639,6 +645,11 @@ class BasePaginator:
     # cursor query parameter name
     cursor_name = "cursor"
 
+    # Which group_by/sub_group_by field names paginate() will accept. Narrow by
+    # default so a new view inherits the safe set and has to opt in to more;
+    # plane/app/views/base.py widens it to APP_ISSUE_GROUP_BY_ALLOWLIST.
+    group_by_allowlist = ISSUE_GROUP_BY_ALLOWLIST
+
     # get the per page parameter from request
     def get_per_page(self, request, default_per_page=1000, max_per_page=1000):
         try:
@@ -687,7 +698,7 @@ class BasePaginator:
                 # paginators below — prevents unauthenticated ORM field-name
                 # injection via user-supplied group_by/sub_group_by query params
                 # (GHSA-wwgj-929g-42cm).
-                if group_by_field_name not in ISSUE_GROUP_BY_ALLOWLIST:
+                if group_by_field_name not in self.group_by_allowlist:
                     raise ParseError(detail=f"Invalid group_by field: {group_by_field_name}")
 
                 paginator_kwargs["group_by_field_name"] = group_by_field_name
@@ -695,7 +706,7 @@ class BasePaginator:
                 paginator_kwargs["count_filter"] = count_filter
 
                 if sub_group_by_field_name:
-                    if sub_group_by_field_name not in ISSUE_GROUP_BY_ALLOWLIST:
+                    if sub_group_by_field_name not in self.group_by_allowlist:
                         raise ParseError(detail=f"Invalid sub_group_by field: {sub_group_by_field_name}")
 
                     paginator_kwargs["sub_group_by_field_name"] = sub_group_by_field_name

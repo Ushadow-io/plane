@@ -32,7 +32,10 @@ export enum EIssueGroupByToServerOptions {
   "assignees" = "assignees__id",
   "cycle" = "cycle_id",
   "module" = "issue_module__module_id",
-  "release" = "issue_releases__release_id",
+  // Not the plain relation path: the server groups release membership through a
+  // FilteredRelation aliased `active_release`, so that work items with no
+  // release still reach the "None" column. See plane/utils/grouper.py.
+  "release" = "active_release__release_id",
   "target_date" = "target_date",
   // team_project deliberately shares project_id: a team's work items are still
   // grouped by the owning project server-side. oxlint reports the duplicate on
@@ -53,7 +56,7 @@ export enum EIssueGroupBYServerToProperty {
   "assignees__id" = "assignee_ids",
   "cycle_id" = "cycle_id",
   "issue_module__module_id" = "module_ids",
-  "issue_releases__release_id" = "release_ids",
+  "active_release__release_id" = "release_ids",
   "target_date" = "target_date",
   "project_id" = "project_id",
   "created_by" = "created_by",
