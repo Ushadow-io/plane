@@ -7,6 +7,7 @@ from typing import Any
 from django.core.management import BaseCommand, CommandError
 
 # Module imports
+from plane.utils.display_properties import workspace_default_display_properties
 from plane.db.models import (
     User,
     WorkspaceMember,
@@ -51,18 +52,22 @@ class Command(BaseCommand):
             if not WorkspaceMember.objects.filter(workspace=project.workspace, member=user, is_active=True).exists():
                 raise CommandError("User not member in workspace")
 
-
             if ProjectMember.objects.filter(project=project, member=user).exists():
                 # Update the project member
-                ProjectMember.objects.filter(project=project, member=user).update(
-                    is_active=True, role=role
-                )
+                ProjectMember.objects.filter(project=project, member=user).update(is_active=True, role=role)
             else:
                 # Create the project member
                 ProjectMember.objects.create(project=project, member=user, role=role)
 
-            # Issue Property
-            ProjectUserProperty.objects.get_or_create(user=user, project=project)
+            # Issue Property -- normally already created by ProjectMember.save(); this only
+            # bites when reactivating a member, which goes through .update() and so no save().
+            ProjectUserProperty.objects.get_or_create(
+                user=user,
+                project=project,
+                defaults={
+                    "display_properties": workspace_default_display_properties(workspace_id=project.workspace_id)
+                },
+            )
 
             # Success message
             self.stdout.write(self.style.SUCCESS(f"User {user_email} added to project {project_id}"))

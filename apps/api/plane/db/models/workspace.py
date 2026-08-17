@@ -107,6 +107,19 @@ def get_default_display_properties():
     }
 
 
+def get_default_issue_display_properties():
+    """The flat display-property shape the per-user rows actually hold.
+
+    Distinct from get_default_display_properties above, which nests the same dict under a
+    "display_properties" key. The import is deferred because the model modules import in a
+    cycle (workspace -> issue -> description -> workspace); as a callable default it only
+    runs at row-creation time, so there is nothing to resolve at import.
+    """
+    from .issue import get_default_display_properties as get_issue_display_properties
+
+    return get_issue_display_properties()
+
+
 def get_issue_props():
     return {"subscribed": True, "assigned": True, "created": True, "all_issues": True}
 
@@ -137,6 +150,10 @@ class Workspace(BaseModel):
     organization_size = models.CharField(max_length=20, blank=True, null=True)
     timezone = models.CharField(max_length=255, default="UTC", choices=TIMEZONE_CHOICES)
     background_color = models.CharField(max_length=255, default=get_random_color)
+    # Seeds the display_properties of every user-property row created in this workspace --
+    # project, cycle, module and workspace-level alike. Members can still change their own
+    # copy afterwards; admins can force theirs back in line from workspace settings.
+    default_display_properties = models.JSONField(default=get_default_issue_display_properties)
 
     def __str__(self):
         """Return name of the Workspace"""

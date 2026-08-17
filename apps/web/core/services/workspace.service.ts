@@ -26,6 +26,7 @@ import type {
   IWorkspaceSidebarNavigationItem,
   IWorkspaceSidebarNavigation,
   IWorkspaceUserPropertiesResponse,
+  IIssueDisplayProperties,
 } from "@plane/types";
 // services
 import { APIService } from "@/services/api.service";
@@ -418,6 +419,48 @@ export class WorkspaceService extends APIService {
     data: Partial<IWorkspaceUserPropertiesResponse>
   ): Promise<IWorkspaceUserPropertiesResponse> {
     return this.patch(`/api/workspaces/${workspaceSlug}/user-properties/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * The display properties every new member row in the workspace is seeded from.
+   * Readable by any member; only an admin may PATCH it.
+   */
+  async fetchWorkspaceDefaultDisplayProperties(
+    workspaceSlug: string
+  ): Promise<{ default_display_properties: IIssueDisplayProperties }> {
+    return this.get(`/api/workspaces/${workspaceSlug}/default-display-properties/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /** Merged server-side, so a caller may send a single toggled property. */
+  async updateWorkspaceDefaultDisplayProperties(
+    workspaceSlug: string,
+    data: Partial<IIssueDisplayProperties>
+  ): Promise<{ default_display_properties: IIssueDisplayProperties }> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/default-display-properties/`, {
+      default_display_properties: data,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Overwrites every member's own display properties in this workspace with the stored default.
+   * Destructive and irreversible -- confirm before calling.
+   */
+  async applyWorkspaceDefaultDisplayProperties(
+    workspaceSlug: string
+  ): Promise<{ display_properties: IIssueDisplayProperties; updated: Record<string, number> }> {
+    return this.post(`/api/workspaces/${workspaceSlug}/default-display-properties/apply/`)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

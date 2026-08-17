@@ -61,6 +61,7 @@ from plane.db.models import (
     ProjectMember,
     UserRecentVisit,
 )
+from plane.utils.display_properties import workspace_default_display_properties
 from plane.utils.filters import ComplexFilterBackend, IssueFilterSet
 from plane.utils.global_paginator import paginate
 from plane.utils.grouper import (
@@ -744,28 +745,26 @@ class ProjectUserDisplayPropertyEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def patch(self, request, slug, project_id):
         try:
-            issue_property = ProjectUserProperty.objects.get(
-                user=request.user, 
-                project_id=project_id
-            )
+            issue_property = ProjectUserProperty.objects.get(user=request.user, project_id=project_id)
         except ProjectUserProperty.DoesNotExist:
             issue_property = ProjectUserProperty.objects.create(
-                user=request.user, 
-                project_id=project_id
+                user=request.user,
+                project_id=project_id,
+                display_properties=workspace_default_display_properties(slug=slug),
             )
 
-        serializer = ProjectUserPropertySerializer(
-            issue_property, 
-            data=request.data,
-            partial=True
-        )
+        serializer = ProjectUserPropertySerializer(issue_property, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def get(self, request, slug, project_id):
-        issue_property, _ = ProjectUserProperty.objects.get_or_create(user=request.user, project_id=project_id)
+        issue_property, _ = ProjectUserProperty.objects.get_or_create(
+            user=request.user,
+            project_id=project_id,
+            defaults={"display_properties": workspace_default_display_properties(slug=slug)},
+        )
         serializer = ProjectUserPropertySerializer(issue_property)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -1097,9 +1096,9 @@ class IssueDetailEndpoint(BaseAPIView):
             order_by=order_by_param,
             queryset=issue,
             total_count_queryset=total_issue_queryset,
-            on_results=lambda issue: IssueListDetailSerializer(
-                issue, many=True, fields=self.fields, expand=self.expand
-            ).data,
+            on_results=lambda issue: (
+                IssueListDetailSerializer(issue, many=True, fields=self.fields, expand=self.expand).data
+            ),
         )
 
 

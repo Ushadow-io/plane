@@ -23,6 +23,8 @@ from plane.app.views import (
     WorkspaceLabelsEndpoint,
     WorkspaceProjectMemberEndpoint,
     WorkspaceUserPropertiesEndpoint,
+    WorkspaceDefaultDisplayPropertiesEndpoint,
+    WorkspaceDefaultDisplayPropertiesApplyEndpoint,
     WorkspaceStatesEndpoint,
     WorkspaceEstimatesEndpoint,
     ExportWorkspaceUserActivityEndpoint,
@@ -163,6 +165,16 @@ urlpatterns = [
         "workspaces/<str:slug>/user-properties/",
         WorkspaceUserPropertiesEndpoint.as_view(),
         name="workspace-user-filters",
+    ),
+    path(
+        "workspaces/<str:slug>/default-display-properties/",
+        WorkspaceDefaultDisplayPropertiesEndpoint.as_view(),
+        name="workspace-default-display-properties",
+    ),
+    path(
+        "workspaces/<str:slug>/default-display-properties/apply/",
+        WorkspaceDefaultDisplayPropertiesApplyEndpoint.as_view(),
+        name="workspace-default-display-properties-apply",
     ),
     path(
         "workspaces/<str:slug>/states/",

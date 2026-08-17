@@ -53,9 +53,7 @@ class WorkSpaceSerializer(DynamicBaseSerializer):
         # digit. Mirrors the frontend HAS_ALPHANUMERIC_REGEX check so the rule
         # cannot be bypassed via a direct API call.
         if not has_alphanumeric(value):
-            raise serializers.ValidationError(
-                "Name must contain at least one letter or number"
-            )
+            raise serializers.ValidationError("Name must contain at least one letter or number")
         return value
 
     def validate_slug(self, value):
@@ -176,6 +174,58 @@ class WorkspaceUserPropertiesSerializer(BaseSerializer):
         model = WorkspaceUserProperties
         fields = "__all__"
         read_only_fields = ["workspace", "user"]
+
+
+class WorkspaceDefaultDisplayPropertiesSerializer(BaseSerializer):
+    """The workspace-wide display properties new member rows are seeded from.
+
+    The stored value is a free-form JSONField, so the keys are validated here rather than
+    trusted. The allowlist is deliberately WIDER than db.models.issue.get_default_display_properties,
+    which predates "modules", "cycle" and "issue_type" -- the web client has sent all sixteen
+    for a long time, and rejecting three of them would make the setting unable to express what
+    a member can already choose for themselves.
+    """
+
+    DISPLAY_PROPERTY_KEYS = frozenset(
+        {
+            "assignee",
+            "attachment_count",
+            "created_on",
+            "cycle",
+            "due_date",
+            "estimate",
+            "issue_type",
+            "key",
+            "labels",
+            "link",
+            "modules",
+            "priority",
+            "start_date",
+            "state",
+            "sub_issue_count",
+            "updated_on",
+        }
+    )
+
+    class Meta:
+        model = Workspace
+        fields = ["default_display_properties"]
+
+    def validate_default_display_properties(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Display properties must be an object.")
+
+        unknown_keys = set(value.keys()) - self.DISPLAY_PROPERTY_KEYS
+        if unknown_keys:
+            raise serializers.ValidationError(f"Unknown display properties: {', '.join(sorted(unknown_keys))}")
+
+        non_boolean_keys = [key for key, enabled in value.items() if not isinstance(enabled, bool)]
+        if non_boolean_keys:
+            raise serializers.ValidationError(
+                f"Display properties must be true or false: {', '.join(sorted(non_boolean_keys))}"
+            )
+
+        return value
 
 
 class WorkspaceUserLinkSerializer(BaseSerializer):

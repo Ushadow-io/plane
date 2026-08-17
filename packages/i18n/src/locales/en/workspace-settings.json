@@ -65,6 +65,33 @@
           }
         }
       },
+      "display": {
+        "title": "Display",
+        "heading": "Default display properties",
+        "description": "The properties every member starts with on their work item views. Members can still change their own.",
+        "seeded_note": "Saving updates what new members start with, and what existing members get in projects they have not opened yet. It does not change anyone's current views.",
+        "apply_to_all": "Apply to all members",
+        "apply_modal": {
+          "title": "Apply to all members",
+          "content": "This replaces every member's own display properties in this workspace with the defaults above, across all their projects, cycles and modules. Their current selections are not stored anywhere and cannot be restored.",
+          "button_default": "Apply to everyone",
+          "button_loading": "Applying"
+        },
+        "toasts": {
+          "saved": {
+            "title": "Saved",
+            "message": "New members will start with these display properties."
+          },
+          "applied": {
+            "title": "Applied",
+            "message": "Every member's display properties now match the workspace default."
+          },
+          "error": {
+            "title": "Error",
+            "message": "Something went wrong. Please try again."
+          }
+        }
+      },
       "billing_and_plans": {
         "heading": "Billing & Plans",
         "description": "Choose your plan, manage subscriptions, and easily upgrade as your needs grow.",

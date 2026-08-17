@@ -15,6 +15,7 @@ from django.db.models import Q
 
 # Module imports
 from plane.db.mixins import AuditModel
+from plane.utils.display_properties import workspace_default_display_properties
 
 from .base import BaseModel
 
@@ -237,6 +238,7 @@ class ProjectMember(ProjectBaseModel):
                 project=self.project,
                 user=self.member,
                 sort_order=(min_sort_order - 10000 if min_sort_order is not None else 65535),
+                display_properties=workspace_default_display_properties(workspace_id=self.project.workspace_id),
             )
 
         super(ProjectMember, self).save(*args, **kwargs)

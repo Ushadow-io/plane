@@ -60,6 +60,7 @@ from plane.db.models import (
     Project,
     UserRecentVisit,
 )
+from plane.utils.display_properties import workspace_default_display_properties
 from plane.utils.analytics_plot import burndown_plot
 from plane.utils.timezone_converter import user_timezone_converter
 from plane.bgtasks.webhook_task import model_activity
@@ -850,6 +851,7 @@ class ModuleUserPropertiesEndpoint(BaseAPIView):
             project_id=project_id,
             module_id=module_id,
             workspace__slug=slug,
+            defaults={"display_properties": workspace_default_display_properties(slug=slug)},
         )
         serializer = ModuleUserPropertiesSerializer(module_properties)
         return Response(serializer.data, status=status.HTTP_200_OK)

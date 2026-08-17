@@ -24,6 +24,7 @@ from .workspace import (
     WorkspaceMemberAdminSerializer,
     WorkspaceMemberMeSerializer,
     WorkspaceUserPropertiesSerializer,
+    WorkspaceDefaultDisplayPropertiesSerializer,
     WorkspaceUserLinkSerializer,
     WorkspaceRecentVisitSerializer,
     WorkspaceHomePreferenceSerializer,

@@ -24,6 +24,7 @@ from plane.app.serializers import (
     ProjectMemberInvitePublicSerializer,
 )
 from plane.app.permissions import allow_permission, ROLE
+from plane.utils.display_properties import workspace_default_display_properties
 from plane.db.models import (
     ProjectMember,
     Workspace,
@@ -173,6 +174,7 @@ class UserProjectInvitationsViewset(BaseViewSet):
             ignore_conflicts=True,
         )
 
+        display_properties = workspace_default_display_properties(workspace=workspace)
         ProjectUserProperty.objects.bulk_create(
             [
                 ProjectUserProperty(
@@ -180,6 +182,7 @@ class UserProjectInvitationsViewset(BaseViewSet):
                     user=request.user,
                     workspace=workspace,
                     created_by=request.user,
+                    display_properties=display_properties,
                 )
                 for project_id in validated_project_ids
             ],

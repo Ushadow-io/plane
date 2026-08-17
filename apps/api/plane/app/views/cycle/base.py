@@ -52,6 +52,7 @@ from plane.db.models import (
     Project,
     UserRecentVisit,
 )
+from plane.utils.display_properties import workspace_default_display_properties
 from plane.utils.analytics_plot import burndown_plot
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.utils.host import base_host
@@ -650,6 +651,7 @@ class CycleUserPropertiesEndpoint(BaseAPIView):
             project_id=project_id,
             cycle_id=cycle_id,
             workspace__slug=slug,
+            defaults={"display_properties": workspace_default_display_properties(slug=slug)},
         )
         serializer = CycleUserPropertiesSerializer(cycle_properties)
         return Response(serializer.data, status=status.HTTP_200_OK)

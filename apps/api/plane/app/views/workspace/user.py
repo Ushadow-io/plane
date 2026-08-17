@@ -53,6 +53,7 @@ from plane.db.models import (
     WorkspaceMember,
     WorkspaceUserProperties,
 )
+from plane.utils.display_properties import workspace_default_display_properties
 from plane.utils.grouper import (
     issue_group_values,
     issue_on_results,
@@ -256,7 +257,9 @@ class WorkspaceUserPropertiesEndpoint(BaseAPIView):
         workspace = Workspace.objects.get(slug=slug)
 
         (workspace_properties, _) = WorkspaceUserProperties.objects.get_or_create(
-            user=request.user, workspace_id=workspace.id
+            user=request.user,
+            workspace_id=workspace.id,
+            defaults={"display_properties": workspace_default_display_properties(workspace=workspace)},
         )
 
         serializer = WorkspaceUserPropertiesSerializer(workspace_properties, data=request.data, partial=True)
@@ -270,7 +273,9 @@ class WorkspaceUserPropertiesEndpoint(BaseAPIView):
         workspace = Workspace.objects.get(slug=slug)
 
         (workspace_properties, _) = WorkspaceUserProperties.objects.get_or_create(
-            user=request.user, workspace=workspace
+            user=request.user,
+            workspace=workspace,
+            defaults={"display_properties": workspace_default_display_properties(workspace=workspace)},
         )
 
         serializer = WorkspaceUserPropertiesSerializer(workspace_properties)

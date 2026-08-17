@@ -18,6 +18,7 @@ from plane.app.serializers import (
 
 from plane.app.permissions import WorkspaceUserPermission
 
+from plane.utils.display_properties import workspace_default_display_properties
 from plane.db.models import Project, ProjectMember, ProjectUserProperty, WorkspaceMember
 from plane.bgtasks.project_add_user_email_task import project_add_user_email
 from plane.utils.host import base_host
@@ -106,6 +107,9 @@ class ProjectMemberViewSet(BaseViewSet):
         # Convert to dictionary for easy lookup: {user_id: min_sort_order}
         sort_order_map = {str(item["user_id"]): item["min_sort_order"] for item in member_sort_orders}
 
+        # Looked up once and shared by every row below, rather than per member
+        display_properties = workspace_default_display_properties(workspace_id=project.workspace_id)
+
         # Loop through requested members
         for member in members:
             member_id = str(member.get("member_id"))
@@ -127,6 +131,7 @@ class ProjectMemberViewSet(BaseViewSet):
                     project_id=project_id,
                     workspace_id=project.workspace_id,
                     sort_order=(min_sort_order - 10000 if min_sort_order is not None else 65535),
+                    display_properties=display_properties,
                 )
             )
 
