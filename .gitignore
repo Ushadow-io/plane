@@ -50,6 +50,10 @@ pnpm-debug.log*
 ## Django ##
 venv
 .venv
+# Dropped by running uv in apps/api. Locks nothing -- pyproject.toml declares no
+# dependencies and both Dockerfiles pip install from requirements/ -- but an
+# untracked file is enough to fail plexus-plane-check-clean and block a deploy.
+uv.lock
 *.pyc
 staticfiles
 mediafiles
