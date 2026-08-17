@@ -671,6 +671,48 @@ export const isSubGrouped = (groupedIssueIds: TGroupedIssues) => {
   return true;
 };
 
+// Only fields that map onto exactly one display property. created_by, release,
+// project, team_project and target_date have no 1:1 display-property
+// equivalent (no "created_by"/"release"/"project" column, and target_date is
+// the due_date column but conflating the two would also hide it for issues
+// grouped some other way that still show a due date), so they're left out.
+const GROUP_BY_TO_DISPLAY_PROPERTY_KEY: Partial<
+  Record<NonNullable<TIssueGroupByOptions>, keyof IIssueDisplayProperties>
+> = {
+  state: "state",
+  "state_detail.group": "state",
+  priority: "priority",
+  labels: "labels",
+  assignees: "assignee",
+  cycle: "cycle",
+  module: "modules",
+};
+
+/**
+ * A group/sub-group column already carries the value of the field it's
+ * grouped by in its header, so repeating that field as a row property is
+ * redundant. Returns a copy of `displayProperties` with the column(s)
+ * corresponding to `groupBy`/`subGroupBy` switched off.
+ */
+export const getVisibleDisplayProperties = (
+  displayProperties: IIssueDisplayProperties | undefined,
+  groupBy: TIssueGroupByOptions | null | undefined,
+  subGroupBy?: TIssueGroupByOptions | null
+): IIssueDisplayProperties | undefined => {
+  if (!displayProperties) return displayProperties;
+
+  const groupedKey = groupBy ? GROUP_BY_TO_DISPLAY_PROPERTY_KEY[groupBy] : undefined;
+  const subGroupedKey = subGroupBy ? GROUP_BY_TO_DISPLAY_PROPERTY_KEY[subGroupBy] : undefined;
+
+  if (!groupedKey && !subGroupedKey) return displayProperties;
+
+  return {
+    ...displayProperties,
+    ...(groupedKey ? { [groupedKey]: false } : {}),
+    ...(subGroupedKey ? { [subGroupedKey]: false } : {}),
+  };
+};
+
 /**
  * This Method returns if the issue is new or not
  * @param issue

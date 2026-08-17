@@ -33,7 +33,7 @@ import { IssueBulkOperationsRoot } from "@/components/issues/bulk-operations";
 import { useBulkOperationStatus } from "@/hooks/use-bulk-operation-status";
 // utils
 import type { GroupDropLocation } from "../utils";
-import { getGroupByColumns, isWorkspaceLevel, isSubGrouped } from "../utils";
+import { getGroupByColumns, isWorkspaceLevel, isSubGrouped, getVisibleDisplayProperties } from "../utils";
 import { ListGroup } from "./list-group";
 import { ListSubGroupedGroup } from "./list-sub-grouped-group";
 import type { TRenderQuickActions } from "./list-view-types";
@@ -98,6 +98,10 @@ export const List = observer(function List(props: IList) {
     isWorkspaceLevel: isWorkspaceLevel(storeType),
     isEpic: isEpic,
   });
+
+  // A grouped/sub-grouped column already shows its field's value in the header,
+  // so hide that same field's column on every row inside it.
+  const visibleDisplayProperties = getVisibleDisplayProperties(displayProperties, group_by, sub_group_by);
 
   // Inner-level columns, only built when the payload is actually nested.
   // `isSubGrouped` inspects the shape rather than trusting the prop, so a
@@ -175,7 +179,7 @@ export const List = observer(function List(props: IList) {
                         quickActions={quickActions}
                         getGroupIndex={getGroupIndex}
                         handleOnDrop={handleOnDrop}
-                        displayProperties={displayProperties}
+                        displayProperties={visibleDisplayProperties}
                         enableIssueQuickAdd={enableIssueQuickAdd}
                         showEmptyGroup={showEmptyGroup}
                         canEditProperties={canEditProperties}
@@ -203,7 +207,7 @@ export const List = observer(function List(props: IList) {
                         orderBy={orderBy}
                         getGroupIndex={getGroupIndex}
                         handleOnDrop={handleOnDrop}
-                        displayProperties={displayProperties}
+                        displayProperties={visibleDisplayProperties}
                         enableIssueQuickAdd={enableIssueQuickAdd}
                         showEmptyGroup={showEmptyGroup}
                         canEditProperties={canEditProperties}

@@ -91,7 +91,7 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
 
   useEffect(() => {
     fetchIssues("init-loader", { canGroup: true, perPageCount: group_by ? 50 : 100 }, viewId);
-  }, [fetchIssues, storeType, group_by, viewId]);
+  }, [fetchIssues, storeType, group_by, sub_group_by, viewId]);
 
   const groupedIssueIds = issues?.groupedIssueIds as TGroupedIssues | undefined;
   // auth
