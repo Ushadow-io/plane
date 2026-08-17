@@ -16,6 +16,8 @@ from plane.db.models import (
     Module,
     Project,
     ProjectMember,
+    Release,
+    ReleaseWorkItem,
     State,
     WorkspaceMember,
     IssueAssignee,
@@ -30,16 +32,23 @@ def issue_queryset_grouper(
     group_by: Optional[str],
     sub_group_by: Optional[str],
 ) -> QuerySet[Issue]:
+    # Release is MULTI-valued -- an issue can be in several releases via
+    # ReleaseWorkItem -- so it follows the module/label pattern (array
+    # annotation + join-table group key), not the single-FK cycle pattern.
     FIELD_MAPPER: Dict[str, str] = {
         "label_ids": "labels__id",
         "assignee_ids": "assignees__id",
         "module_ids": "issue_module__module_id",
+        "release_ids": "issue_releases__release_id",
     }
 
     GROUP_FILTER_MAPPER: Dict[str, Q] = {
         "assignees__id": Q(issue_assignee__deleted_at__isnull=True),
         "labels__id": Q(label_issue__deleted_at__isnull=True),
         "issue_module__module_id": Q(issue_module__deleted_at__isnull=True),
+        # Release scope rows are soft-deleted when an item is removed from a
+        # release; without this the group would still contain the tombstones.
+        "issue_releases__release_id": Q(issue_releases__deleted_at__isnull=True),
     }
 
     for group_key in [group_by, sub_group_by]:
@@ -74,10 +83,20 @@ def issue_queryset_grouper(
         .values("arr")
     )
 
+    # NB: ReleaseWorkItem's FK to Issue is `work_item`, not `issue`
+    # (related_name="issue_releases").
+    issue_release_subquery = Subquery(
+        ReleaseWorkItem.objects.filter(work_item_id=OuterRef("pk"), deleted_at__isnull=True)
+        .values("work_item_id")
+        .annotate(arr=ArrayAgg("release_id", distinct=True))
+        .values("arr")
+    )
+
     annotations_map: Dict[str, Tuple[str, Q]] = {
         "assignee_ids": Coalesce(issue_assignee_subquery, Value([], output_field=ArrayField(UUIDField()))),
         "label_ids": Coalesce(issue_label_subquery, Value([], output_field=ArrayField(UUIDField()))),
         "module_ids": Coalesce(issue_module_subquery, Value([], output_field=ArrayField(UUIDField()))),
+        "release_ids": Coalesce(issue_release_subquery, Value([], output_field=ArrayField(UUIDField()))),
     }
 
     default_annotations: Dict[str, Any] = {}
@@ -99,9 +118,10 @@ def issue_on_results(
         "labels__id": "label_ids",
         "assignees__id": "assignee_ids",
         "issue_module__module_id": "module_ids",
+        "issue_releases__release_id": "release_ids",
     }
 
-    original_list: List[str] = ["assignee_ids", "label_ids", "module_ids"]
+    original_list: List[str] = ["assignee_ids", "label_ids", "module_ids", "release_ids"]
 
     required_fields: List[str] = [
         "id",
@@ -182,6 +202,15 @@ def issue_group_values(
         if project_id:
             return list(queryset.filter(project_id=project_id)) + ["None"]
         return list(queryset) + ["None"]
+
+    if field == "issue_releases__release_id":
+        # Releases are workspace-scoped (Release is deliberately not a
+        # WorkspaceBaseModel), so unlike modules and cycles there is no
+        # project_id to narrow by -- the same release list applies to every
+        # project in the workspace.
+        return list(
+            Release.objects.filter(workspace__slug=slug).values_list("id", flat=True)
+        ) + ["None"]
 
     if field == "project_id":
         queryset = Project.objects.filter(workspace__slug=slug).values_list("id", flat=True)
