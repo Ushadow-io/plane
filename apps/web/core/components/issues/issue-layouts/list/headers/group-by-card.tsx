@@ -37,6 +37,8 @@ interface IHeaderGroupByCard {
   selectionHelpers: TSelectionHelper;
   handleCollapsedGroups: (value: string) => void;
   isEpic?: boolean;
+  /** Render at sub-group scale: used for the inner level of a nested list. */
+  compact?: boolean;
 }
 
 export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHeaderGroupByCard) {
@@ -52,6 +54,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
     selectionHelpers,
     handleCollapsedGroups,
     isEpic = false,
+    compact = false,
   } = props;
   // states
   const [isOpen, setIsOpen] = useState(false);
@@ -115,8 +118,16 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
           className="relative flex w-full cursor-pointer flex-row items-center gap-1 overflow-hidden"
           onClick={() => handleCollapsedGroups(groupID)}
         >
-          <div className="line-clamp-1 inline-block truncate font-medium text-primary">{title}</div>
-          <div className="pl-2 text-13 font-medium text-tertiary">{count || 0}</div>
+          <div
+            className={cn("line-clamp-1 inline-block truncate font-medium text-primary", {
+              // Sub-group headers sit inside a group header, so they must read
+              // as subordinate to it.
+              "text-13": compact,
+            })}
+          >
+            {title}
+          </div>
+          <div className={cn("pl-2 font-medium text-tertiary", compact ? "text-11" : "text-13")}>{count || 0}</div>
           <div className="px-2.5"></div>
         </div>
 

@@ -293,26 +293,30 @@ export const ListGroup = observer(function ListGroup(props: Props) {
           // Only the OUTER header may stick; two competing sticky headers
           // overlap as you scroll.
           "sticky top-0 z-[2]": isExpanded && groupIssueCount > 0 && !isSubGroup,
-          // Indent the nested level so the hierarchy reads at a glance.
-          "pl-6": isSubGroup,
         })}
       >
-        <HeaderGroupByCard
-          groupID={group.id}
-          groupBy={group_by}
-          icon={group.icon}
-          title={group.name}
-          count={groupIssueCount}
-          issuePayload={group.payload}
-          canEditProperties={canEditProperties}
-          disableIssueCreation={
-            disableIssueCreation || isGroupByCreatedBy || isCompletedCycle || isWorkflowIssueCreationDisabled
-          }
-          addIssuesToView={addIssuesToView}
-          selectionHelpers={selectionHelpers}
-          handleCollapsedGroups={(value) => handleCollapsedGroups(value, isSubGroup ? "sub_group_by" : "group_by")}
-          isEpic={isEpic}
-        />
+        {/* Indent via MARGIN, not padding: Row applies the custom utility
+            `px-page-x`, which tailwind-merge does not recognise as conflicting
+            with pl-*, so a padding override silently loses on CSS order. */}
+        <div className={cn("w-full", { "ml-6": isSubGroup })}>
+          <HeaderGroupByCard
+            groupID={group.id}
+            groupBy={group_by}
+            icon={group.icon}
+            title={group.name}
+            count={groupIssueCount}
+            issuePayload={group.payload}
+            canEditProperties={canEditProperties}
+            disableIssueCreation={
+              disableIssueCreation || isGroupByCreatedBy || isCompletedCycle || isWorkflowIssueCreationDisabled
+            }
+            addIssuesToView={addIssuesToView}
+            selectionHelpers={selectionHelpers}
+            handleCollapsedGroups={(value) => handleCollapsedGroups(value, isSubGroup ? "sub_group_by" : "group_by")}
+            isEpic={isEpic}
+            compact={isSubGroup}
+          />
+        </div>
       </Row>
       {shouldExpand && (
         <div className="relative">
