@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+export * from "./delete-release-modal";
 export * from "./detail/changelog";
 export * from "./detail/overview";
 export * from "./detail/scope";
