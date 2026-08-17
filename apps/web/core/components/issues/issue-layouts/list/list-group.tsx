@@ -315,11 +315,16 @@ export const ListGroup = observer(function ListGroup(props: Props) {
             handleCollapsedGroups={(value) => handleCollapsedGroups(value, isSubGroup ? "sub_group_by" : "group_by")}
             isEpic={isEpic}
             compact={isSubGroup}
+            showChevron={isSubGroup}
+            isExpanded={isExpanded}
           />
         </div>
       </Row>
       {shouldExpand && (
-        <div className="relative">
+        // Match the sub-group header's ml-6 so work items line up with the
+        // header they belong to rather than sitting left of it. Applied to the
+        // whole expanded region, so blocks, load-more and quick-add all agree.
+        <div className={cn("relative", { "ml-6": isSubGroup })}>
           <GroupDragOverlay
             dragColumnOrientation={dragColumnOrientation}
             canOverlayBeVisible={canOverlayBeVisible}

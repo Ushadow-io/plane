@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { CircleDashed } from "lucide-react";
+import { ChevronRight, CircleDashed } from "lucide-react";
 import { PlusIcon } from "@plane/propel/icons";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -39,6 +39,14 @@ interface IHeaderGroupByCard {
   isEpic?: boolean;
   /** Render at sub-group scale: used for the inner level of a nested list. */
   compact?: boolean;
+  /**
+   * Show a collapse/expand chevron. Plane's flat list headers toggle on title
+   * click with no affordance; a nested list needs one at both levels, or the
+   * sub-group looks inert next to its parent.
+   */
+  showChevron?: boolean;
+  /** Drives the chevron's rotation. Owned by ListGroup, which computes it. */
+  isExpanded?: boolean;
 }
 
 export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHeaderGroupByCard) {
@@ -55,6 +63,8 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
     handleCollapsedGroups,
     isEpic = false,
     compact = false,
+    showChevron = false,
+    isExpanded = true,
   } = props;
   // states
   const [isOpen, setIsOpen] = useState(false);
@@ -106,6 +116,19 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
               groupID={groupID}
               selectionHelpers={selectionHelpers}
               disabled={count === 0}
+            />
+          </div>
+        )}
+        {showChevron && (
+          // oxlint-disable-next-line jsx_a11y/click-events-have-key-events jsx_a11y/no-static-element-interactions
+          <div
+            className="grid flex-shrink-0 cursor-pointer place-items-center"
+            onClick={() => handleCollapsedGroups(groupID)}
+          >
+            <ChevronRight
+              className={cn("size-3.5 flex-shrink-0 text-secondary transition-transform", {
+                "rotate-90": isExpanded,
+              })}
             />
           </div>
         )}
