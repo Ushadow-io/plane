@@ -304,6 +304,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                 updateIssue={updateIssue}
                 displayProperties={displayProperties}
                 activeLayout="List"
+                alignInColumns
                 isEpic={isEpic}
               />
               {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}

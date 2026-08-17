@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { SyntheticEvent } from "react";
+import type { ReactNode, SyntheticEvent } from "react";
 import { useCallback, useMemo } from "react";
 import { xor } from "lodash-es";
 import { observer } from "mobx-react";
@@ -46,6 +46,68 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import { IssuePropertyLabels } from "./labels";
 import { WithDisplayPropertiesHOC } from "./with-display-properties-HOC";
 
+function handleEventPropagation(e: SyntheticEvent<HTMLDivElement>) {
+  e.stopPropagation();
+  e.preventDefault();
+}
+
+/**
+ * Reserved widths for the property columns.
+ *
+ * A layout that asks for columns (the list) right-anchors this group and renders the same
+ * properties in the same order on every row, so reserving a width per property is all it takes
+ * for each one to land in the same column down the whole list. Values wider than their column
+ * truncate; the tooltip still carries the full text.
+ */
+const PROPERTY_COLUMN = {
+  state: "w-32",
+  priority: "w-7",
+  date: "w-28",
+  /** Fits AvatarGroup's cap of three overlapping md avatars: 22px + 2 × 18px. */
+  assignee: "w-15",
+  module: "w-32",
+  cycle: "w-28",
+  estimate: "w-16",
+  /** Sub-work-item, attachment and link counts. */
+  count: "w-14",
+  labels: "w-32",
+  /** A merged date range stands in for both date columns, so it spans the pair plus the gap between them. */
+  dateRange: "w-[232px]", // 2 × 112px + gap-2
+} as const;
+
+type TPropertySlotProps = {
+  /** Width class from PROPERTY_COLUMN, applied only when the layout wants columns. */
+  width: string;
+  isColumnar: boolean;
+  /**
+   * An unset property holds its column but keeps its placeholder hidden until the row is hovered,
+   * so a sparse row reads as empty space rather than a run of ghost icons.
+   */
+  isEmpty?: boolean;
+  /** Slots with their own click behaviour (the counts) opt out of the generic propagation stopper. */
+  stopPropagation?: boolean;
+  children: ReactNode;
+};
+
+function PropertySlot({ width, isColumnar, isEmpty = false, stopPropagation = true, children }: TPropertySlotProps) {
+  return (
+    // oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions
+    <div
+      className={cn(
+        "h-5",
+        isColumnar && `${width} shrink-0`,
+        isColumnar &&
+          isEmpty &&
+          "opacity-0 transition-opacity group-hover/list-block:opacity-100 focus-within:opacity-100"
+      )}
+      onFocus={stopPropagation ? handleEventPropagation : undefined}
+      onClick={stopPropagation ? handleEventPropagation : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
 export interface IIssueProperties {
   issue: TIssue;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
@@ -53,11 +115,21 @@ export interface IIssueProperties {
   isReadOnly: boolean;
   className: string;
   activeLayout: string;
+  /** Give every property a reserved width so the same one lines up across rows. List layout only. */
+  alignInColumns?: boolean;
   isEpic?: boolean;
 }
 
 export const IssueProperties = observer(function IssueProperties(props: IIssueProperties) {
-  const { issue, updateIssue, displayProperties, isReadOnly, className, isEpic = false } = props;
+  const {
+    issue,
+    updateIssue,
+    displayProperties,
+    isReadOnly,
+    className,
+    alignInColumns = false,
+    isEpic = false,
+  } = props;
   // i18n
   const { t } = useTranslation();
   // store hooks
@@ -188,19 +260,12 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
   const minDate = getDate(issue.start_date);
   const maxDate = getDate(issue.target_date);
 
-  // oxlint-disable-next-line unicorn/consistent-function-scoping
-  const handleEventPropagation = (e: SyntheticEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
   return (
     <div className={className}>
       {/* basic properties */}
       {/* state */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="state">
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <PropertySlot width={PROPERTY_COLUMN.state} isColumnar={alignInColumns}>
           <StateDropdown
             buttonContainerClassName="truncate max-w-40"
             value={issue.state_id}
@@ -211,13 +276,16 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             renderByDefault={isMobile}
             showTooltip
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       {/* priority */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="priority">
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <PropertySlot
+          width={PROPERTY_COLUMN.priority}
+          isColumnar={alignInColumns}
+          isEmpty={!issue.priority || issue.priority === "none"}
+        >
           <PriorityDropdown
             value={issue?.priority}
             onChange={handlePriority}
@@ -226,7 +294,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             renderByDefault={isMobile}
             showTooltip
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       {/* merged dates */}
@@ -235,8 +303,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
         displayPropertyKey={["start_date", "due_date"]}
         shouldRenderProperty={() => isDateRangeEnabled}
       >
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <PropertySlot width={PROPERTY_COLUMN.dateRange} isColumnar={alignInColumns}>
           <DateRangeDropdown
             value={{
               from: getDate(issue.start_date) || undefined,
@@ -262,7 +329,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             renderPlaceholder={false}
             customTooltipHeading="Date Range"
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       {/* start date */}
@@ -271,8 +338,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
         displayPropertyKey="start_date"
         shouldRenderProperty={() => !isDateRangeEnabled}
       >
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <PropertySlot width={PROPERTY_COLUMN.date} isColumnar={alignInColumns} isEmpty={!issue.start_date}>
           <DateDropdown
             value={issue.start_date ?? null}
             onChange={handleStartDate}
@@ -286,7 +352,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             showTooltip
             labelClassName="text-caption-sm-regular"
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       {/* target/due date */}
@@ -295,8 +361,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
         displayPropertyKey="due_date"
         shouldRenderProperty={() => !isDateRangeEnabled}
       >
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <PropertySlot width={PROPERTY_COLUMN.date} isColumnar={alignInColumns} isEmpty={!issue.target_date}>
           <DateDropdown
             value={issue?.target_date ?? null}
             onChange={handleTargetDate}
@@ -314,13 +379,16 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             showTooltip
             labelClassName="text-caption-sm-regular"
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       {/* assignee */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="assignee">
-        {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-        <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+        <PropertySlot
+          width={PROPERTY_COLUMN.assignee}
+          isColumnar={alignInColumns}
+          isEmpty={!issue.assignee_ids?.length}
+        >
           <MemberDropdown
             projectId={issue?.project_id}
             value={issue?.assignee_ids}
@@ -335,7 +403,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             tooltipContent=""
             renderByDefault={isMobile}
           />
-        </div>
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       <>
@@ -344,8 +412,11 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             {/* modules */}
             {projectDetails?.module_view && (
               <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="modules">
-                {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-                <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+                <PropertySlot
+                  width={PROPERTY_COLUMN.module}
+                  isColumnar={alignInColumns}
+                  isEmpty={!issue.module_ids?.length}
+                >
                   <ModuleDropdown
                     buttonContainerClassName="truncate max-w-40"
                     projectId={issue?.project_id}
@@ -358,15 +429,14 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
                     showCount
                     showTooltip
                   />
-                </div>
+                </PropertySlot>
               </WithDisplayPropertiesHOC>
             )}
 
             {/* cycles */}
             {projectDetails?.cycle_view && (
               <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="cycle">
-                {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-                <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+                <PropertySlot width={PROPERTY_COLUMN.cycle} isColumnar={alignInColumns} isEmpty={!issue.cycle_id}>
                   <CycleDropdown
                     buttonContainerClassName="truncate max-w-40"
                     projectId={issue?.project_id}
@@ -377,7 +447,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
                     renderByDefault={isMobile}
                     showTooltip
                   />
-                </div>
+                </PropertySlot>
               </WithDisplayPropertiesHOC>
             )}
           </>
@@ -387,8 +457,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       {/* estimates */}
       {projectId && areEstimateEnabledByProjectId(projectId?.toString()) && (
         <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="estimate">
-          {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-          <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
+          <PropertySlot width={PROPERTY_COLUMN.estimate} isColumnar={alignInColumns} isEmpty={!issue.estimate_point}>
             <EstimateDropdown
               value={issue.estimate_point ?? undefined}
               onChange={handleEstimate}
@@ -398,43 +467,43 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
               renderByDefault={isMobile}
               showTooltip
             />
-          </div>
+          </PropertySlot>
         </WithDisplayPropertiesHOC>
       )}
 
       {/* extra render properties */}
       {/* sub-issues */}
+      {/* the counts below hold an empty column when they are zero, rather than dropping out of the row */}
       {!isEpic && (
         <WithDisplayPropertiesHOC
           displayProperties={displayProperties}
           displayPropertyKey="sub_issue_count"
-          shouldRenderProperty={(properties) => !!properties.sub_issue_count && !!subIssueCount}
+          shouldRenderProperty={(properties) => !!properties.sub_issue_count && (alignInColumns || !!subIssueCount)}
         >
-          <Tooltip
-            tooltipHeading={t("common.sub_work_items")}
-            tooltipContent={`${subIssueCount}`}
-            isMobile={isMobile}
-            renderByDefault={false}
-          >
-            {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-            <div
-              onFocus={handleEventPropagation}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                if (subIssueCount) redirectToIssueDetail();
-              }}
-              className={cn(
-                "flex h-5 flex-shrink-0 items-center justify-center gap-2 overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1",
-                {
-                  "cursor-pointer hover:bg-layer-1": subIssueCount,
-                }
-              )}
-            >
-              <ViewsIcon className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
-              <div className="text-caption-sm-regular">{subIssueCount}</div>
-            </div>
-          </Tooltip>
+          <PropertySlot width={PROPERTY_COLUMN.count} isColumnar={alignInColumns} stopPropagation={false}>
+            {!!subIssueCount && (
+              <Tooltip
+                tooltipHeading={t("common.sub_work_items")}
+                tooltipContent={`${subIssueCount}`}
+                isMobile={isMobile}
+                renderByDefault={false}
+              >
+                {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
+                <div
+                  onFocus={handleEventPropagation}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    redirectToIssueDetail();
+                  }}
+                  className="flex h-5 flex-shrink-0 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1 hover:bg-layer-1"
+                >
+                  <ViewsIcon className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
+                  <div className="text-caption-sm-regular">{subIssueCount}</div>
+                </div>
+              </Tooltip>
+            )}
+          </PropertySlot>
         </WithDisplayPropertiesHOC>
       )}
 
@@ -442,62 +511,84 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       <WithDisplayPropertiesHOC
         displayProperties={displayProperties}
         displayPropertyKey="attachment_count"
-        shouldRenderProperty={(properties) => !!properties.attachment_count && !!issue.attachment_count}
+        shouldRenderProperty={(properties) =>
+          !!properties.attachment_count && (alignInColumns || !!issue.attachment_count)
+        }
       >
-        <Tooltip
-          tooltipHeading={t("common.attachments")}
-          tooltipContent={`${issue.attachment_count}`}
-          isMobile={isMobile}
-          renderByDefault={false}
-        >
-          {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-          <div
-            className="flex h-5 flex-shrink-0 items-center justify-center gap-2 overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1"
-            onFocus={handleEventPropagation}
-            onClick={handleEventPropagation}
-          >
-            <Paperclip className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
-            <div className="text-caption-sm-regular">{issue.attachment_count}</div>
-          </div>
-        </Tooltip>
+        <PropertySlot width={PROPERTY_COLUMN.count} isColumnar={alignInColumns}>
+          {!!issue.attachment_count && (
+            <Tooltip
+              tooltipHeading={t("common.attachments")}
+              tooltipContent={`${issue.attachment_count}`}
+              isMobile={isMobile}
+              renderByDefault={false}
+            >
+              <div className="flex h-5 flex-shrink-0 items-center justify-center gap-2 overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1">
+                <Paperclip className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
+                <div className="text-caption-sm-regular">{issue.attachment_count}</div>
+              </div>
+            </Tooltip>
+          )}
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       {/* link */}
       <WithDisplayPropertiesHOC
         displayProperties={displayProperties}
         displayPropertyKey="link"
-        shouldRenderProperty={(properties) => !!properties.link && !!issue.link_count}
+        shouldRenderProperty={(properties) => !!properties.link && (alignInColumns || !!issue.link_count)}
       >
-        <Tooltip
-          tooltipHeading={t("common.links")}
-          tooltipContent={`${issue.link_count}`}
-          isMobile={isMobile}
-          renderByDefault={false}
-        >
-          {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-          <div
-            className="flex h-5 flex-shrink-0 items-center justify-center gap-2 overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1"
-            onFocus={handleEventPropagation}
-            onClick={handleEventPropagation}
-          >
-            <LinkIcon className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
-            <div className="text-caption-sm-regular">{issue.link_count}</div>
-          </div>
-        </Tooltip>
+        <PropertySlot width={PROPERTY_COLUMN.count} isColumnar={alignInColumns}>
+          {!!issue.link_count && (
+            <Tooltip
+              tooltipHeading={t("common.links")}
+              tooltipContent={`${issue.link_count}`}
+              isMobile={isMobile}
+              renderByDefault={false}
+            >
+              <div className="flex h-5 flex-shrink-0 items-center justify-center gap-2 overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1">
+                <LinkIcon className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
+                <div className="text-caption-sm-regular">{issue.link_count}</div>
+              </div>
+            </Tooltip>
+          )}
+        </PropertySlot>
       </WithDisplayPropertiesHOC>
 
       {/* label */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="labels">
-        <IssuePropertyLabels
-          projectId={issue?.project_id || null}
-          value={issue?.label_ids || []}
-          defaultOptions={defaultLabelOptions}
-          onChange={handleLabel}
-          disabled={isReadOnly}
-          renderByDefault={isMobile}
-          hideDropdownArrow
-          maxRender={3}
-        />
+        {alignInColumns ? (
+          // one column means one chip, so a multi-label work item summarises as "N Labels"
+          <PropertySlot
+            width={PROPERTY_COLUMN.labels}
+            isColumnar
+            isEmpty={!issue.label_ids?.length}
+            stopPropagation={false}
+          >
+            <IssuePropertyLabels
+              projectId={issue?.project_id || null}
+              value={issue?.label_ids || []}
+              defaultOptions={defaultLabelOptions}
+              onChange={handleLabel}
+              disabled={isReadOnly}
+              renderByDefault={isMobile}
+              hideDropdownArrow
+              maxRender={1}
+              fullWidth
+            />
+          </PropertySlot>
+        ) : (
+          <IssuePropertyLabels
+            projectId={issue?.project_id || null}
+            value={issue?.label_ids || []}
+            defaultOptions={defaultLabelOptions}
+            onChange={handleLabel}
+            disabled={isReadOnly}
+            renderByDefault={isMobile}
+            hideDropdownArrow
+            maxRender={3}
+          />
+        )}
       </WithDisplayPropertiesHOC>
     </div>
   );
