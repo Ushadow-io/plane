@@ -10,7 +10,7 @@ import { extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tre
 import { clone, isNil, pull, uniq, concat } from "lodash-es";
 import scrollIntoView from "smooth-scroll-into-view-if-needed";
 import type { FC } from "react";
-import { CalendarDays, LayersIcon, Paperclip } from "lucide-react";
+import { CalendarDays, LayersIcon, Paperclip, Rocket } from "lucide-react";
 // plane types
 import { EIconSize, ISSUE_PRIORITIES, STATE_GROUPS } from "@plane/constants";
 import { Logo } from "@plane/propel/emoji-icon-picker";
@@ -145,6 +145,7 @@ export const getGroupByColumns = ({
     project: getProjectColumns,
     cycle: getCycleColumns,
     module: getModuleColumns,
+    release: getReleaseColumns,
     state: getStateColumns,
     "state_detail.group": getStateGroupColumns,
     priority: getPriorityColumns,
@@ -236,6 +237,35 @@ const getModuleColumns = (): IGroupByColumn[] | undefined => {
     payload: {},
   });
   return modules;
+};
+
+// Releases are WORKSPACE-scoped, unlike cycles and modules -- `Release` is
+// deliberately not a WorkspaceBaseModel, so there is no project to narrow by and
+// no `currentProjectDetails` guard. Every release in the workspace is a valid
+// column for any project's board.
+const getReleaseColumns = (): IGroupByColumn[] | undefined => {
+  const { currentWorkspaceReleaseIds, getReleaseById } = store.release;
+  if (!currentWorkspaceReleaseIds) return;
+
+  const releases: IGroupByColumn[] = [];
+  currentWorkspaceReleaseIds.forEach((releaseId) => {
+    const release = getReleaseById(releaseId);
+    if (!release) return;
+    releases.push({
+      id: release.id,
+      name: release.name,
+      icon: <Rocket className="h-3.5 w-3.5" />,
+      // Multi-valued, like module_ids -- an item can sit in several releases.
+      payload: { release_ids: [release.id] },
+    });
+  });
+  releases.push({
+    id: "None",
+    name: "None",
+    icon: <Rocket className="h-3.5 w-3.5" />,
+    payload: {},
+  });
+  return releases;
 };
 
 const getStateColumns = ({ projectId }: TGetColumns): IGroupByColumn[] | undefined => {

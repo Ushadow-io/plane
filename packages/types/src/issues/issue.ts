@@ -62,6 +62,11 @@ export type TBaseIssue = {
   parent_id: string | null;
   cycle_id: string | null;
   module_ids: string[] | null;
+  // Multi-valued: an item can be in several releases (ReleaseWorkItem join).
+  // Returned by issue_queryset_grouper alongside module_ids/label_ids.
+  // Optional, unlike module_ids: only the grouped list/kanban endpoints annotate
+  // it, so making it required would break every site that builds a TIssue.
+  release_ids?: string[] | null;
   type_id: string | null;
 
   created_at: string;

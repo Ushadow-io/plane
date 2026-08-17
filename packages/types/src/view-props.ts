@@ -21,6 +21,7 @@ export type TIssueGroupByOptions =
   | "assignees"
   | "cycle"
   | "module"
+  | "release"
   | "target_date"
   | "team_project"
   | null;
@@ -71,6 +72,7 @@ export type TIssueParams =
   | "labels"
   | "cycle"
   | "module"
+  | "release"
   | "start_date"
   | "target_date"
   | "project"
