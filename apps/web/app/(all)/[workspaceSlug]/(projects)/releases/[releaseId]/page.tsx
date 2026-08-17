@@ -11,6 +11,7 @@ import { Button } from "@plane/propel/button";
 import { Loader } from "@plane/ui";
 import { PageHead } from "@/components/core/page-title";
 import {
+  DeleteReleaseModal,
   ReleaseChangelog,
   ReleaseModal,
   ReleaseOverview,
@@ -31,8 +32,12 @@ function ReleaseDetailPage() {
   const { allowPermissions } = useUserPermissions();
   const [activeTab, setActiveTab] = useState<TTab>("Overview");
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const canEdit = allowPermissions([EUserPermissions.ADMIN, EUserPermissions.MEMBER], EUserPermissionsLevel.WORKSPACE);
+  // The API allows only workspace admins to delete, so members do not get a
+  // button that would always fail.
+  const canDelete = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
 
   // See the list page: useSWR's fetcher does not run in these components.
   const [isLoading, setIsLoading] = useState(true);
@@ -82,11 +87,18 @@ function ReleaseDetailPage() {
               )}
             </div>
           </div>
-          {canEdit && (
-            <Button variant="secondary" size="sm" onClick={() => setIsEditOpen(true)}>
-              Edit
-            </Button>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {canEdit && (
+              <Button variant="secondary" size="sm" onClick={() => setIsEditOpen(true)}>
+                Edit
+              </Button>
+            )}
+            {canDelete && (
+              <Button variant="error-outline" size="sm" onClick={() => setIsDeleteOpen(true)}>
+                Delete
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="mt-4 flex gap-1 border-b border-subtle-1">
@@ -112,6 +124,12 @@ function ReleaseDetailPage() {
       </div>
 
       <ReleaseModal isOpen={isEditOpen} workspaceSlug={slug} data={release} onClose={() => setIsEditOpen(false)} />
+      <DeleteReleaseModal
+        isOpen={isDeleteOpen}
+        release={release}
+        workspaceSlug={slug}
+        onClose={() => setIsDeleteOpen(false)}
+      />
     </>
   );
 }
