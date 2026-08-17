@@ -232,6 +232,32 @@ llm_config_variables = [
         "category": "AI",
         "is_encrypted": False,
     },
+    # Endpoint the LLM call is sent to. Empty means "the provider's own public
+    # API" (api.openai.com), which is the only thing upstream could ever do.
+    # Set it to reach a private deployment instead:
+    #   Azure OpenAI  -> the resource root, e.g. https://<res>.openai.azure.com
+    #                    (NOT the /openai/deployments/... path; the SDK appends that)
+    #   OpenAI-compat -> a full base URL ending in /v1
+    #
+    # NOTE: this is seeded from the environment only on the FIRST
+    # `configure_instance` run — get_or_create + get_configuration_value return
+    # the DB row thereafter, even when that row is empty. On an instance that has
+    # already been configured, change this in God Mode -> AI, not in the chart.
+    {
+        "key": "LLM_BASE_URL",
+        "value": os.environ.get("LLM_BASE_URL", ""),
+        "category": "AI",
+        "is_encrypted": False,
+    },
+    # Azure OpenAI only. Azure pins request/response shape to a dated API version
+    # and the SDK will not call without one, so it needs its own setting rather
+    # than being folded into the base URL. Ignored by every other provider.
+    {
+        "key": "LLM_API_VERSION",
+        "value": os.environ.get("LLM_API_VERSION", "2024-10-21"),
+        "category": "AI",
+        "is_encrypted": False,
+    },
     # Deprecated, use LLM_MODEL
     {
         "key": "GPT_ENGINE",
