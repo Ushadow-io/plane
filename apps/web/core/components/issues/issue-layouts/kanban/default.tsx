@@ -165,8 +165,11 @@ export const KanBan = observer(function KanBan(props: IKanBan) {
                 groupByVisibilityToggle.showIssues ? `w-[350px]` : ``
               } `}
             >
+              {/* Banded like the swimlane headers (see swimlanes.tsx): plain
+                  kanban's column header was bg-surface-2, the board's own
+                  background, so it did not read as a header either. */}
               {sub_group_by === null && (
-                <div className="sticky top-0 z-[2] w-full flex-shrink-0 bg-surface-2 py-1">
+                <div className="sticky top-0 z-[2] w-full flex-shrink-0 bg-layer-3 py-1">
                   <HeaderGroupByCard
                     sub_group_by={sub_group_by}
                     group_by={group_by}

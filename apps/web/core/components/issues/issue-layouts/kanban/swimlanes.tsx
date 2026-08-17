@@ -183,7 +183,13 @@ const SubGroupSwimlane = observer(function SubGroupSwimlane(props: ISubGroupSwim
           if (subGroupByVisibilityToggle.showGroup === false) return <></>;
           return (
             <div key={_list.id} className="flex flex-shrink-0 flex-col">
-              <div className="sticky top-[50px] z-[3] flex w-full items-center border-y-[0.5px] border-subtle bg-layer-1 py-1">
+              {/* bg-layer-3, not bg-layer-1: the board itself is bg-surface-2,
+                  and in the dark theme surface-2 and layer-1 both resolve to
+                  neutral-200 -- the same colour -- so this band disappeared
+                  into the board and only the hairline border marked it.
+                  layer-3 is the one background token that contrasts with
+                  surface-2 in BOTH themes (darker in light, lighter in dark). */}
+              <div className="sticky top-[50px] z-[3] flex w-full items-center border-y-[0.5px] border-subtle bg-layer-3 py-1">
                 <Row className="sticky left-0 flex-shrink-0">
                   <HeaderSubGroupByCard
                     column_id={_list.id}
@@ -307,7 +313,11 @@ export const KanBanSwimLanes = observer(function KanBanSwimLanes(props: IKanBanS
 
   return (
     <div className="relative">
-      <Row className="sticky top-0 z-[4] h-[50px] bg-surface-2">
+      {/* Group (column) header row. Was bg-surface-2, i.e. exactly the board's
+          own background in every theme, so it read as part of the board rather
+          than as a header. Banded like the sub-group header below it; the two
+          levels are distinguished by type, not by background. */}
+      <Row className="sticky top-0 z-[4] h-[50px] bg-layer-3">
         <SubGroupSwimlaneHeader
           getGroupIssueCount={getGroupIssueCount}
           group_by={group_by}
