@@ -97,6 +97,27 @@ ISSUE_GROUP_BY_ALLOWLIST = frozenset({
     "start_date",
 })
 
+# Group key for release membership. Deliberately NOT the plain relation path
+# `issue_releases__release_id`: release rows are soft-deleted, and excluding the
+# tombstones with a .filter() silently drops every work item that has no release
+# row at all — see the FilteredRelation in plane/utils/grouper.py for why. This
+# is the alias of that FilteredRelation, so it only resolves on a queryset that
+# issue_queryset_grouper() has annotated.
+#
+# It lives here, next to the allowlist, because four modules have to agree on
+# the exact string (this allowlist, grouper.py, both paginator FIELD_MAPPERs)
+# and a typo in any one of them fails as a 400 or as silently wrong grouping.
+RELEASE_GROUP_KEY = "active_release__release_id"
+
+# The authenticated (app) surface additionally groups by release — a fork-only
+# feature. Kept OUT of the set above on purpose: that one is the fail-closed
+# default, and it is what the public Spaces surface gets. Adding release there
+# would let an anonymous request group a published project by a field
+# plane/space/utils/grouper.py cannot resolve — and which its grouper never
+# annotates, so it would not even resolve as an ORM path. See
+# plane/app/views/base.py, which opts the authenticated base classes in.
+APP_ISSUE_GROUP_BY_ALLOWLIST = ISSUE_GROUP_BY_ALLOWLIST | {RELEASE_GROUP_KEY}
+
 # Cycle list queryset.
 CYCLE_ORDER_BY_ALLOWLIST = frozenset({
     "created_at",

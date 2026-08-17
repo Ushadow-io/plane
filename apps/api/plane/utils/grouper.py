@@ -5,7 +5,15 @@
 # Django imports
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import Q, UUIDField, Value, QuerySet, OuterRef, Subquery
+from django.db.models import (
+    FilteredRelation,
+    Q,
+    UUIDField,
+    Value,
+    QuerySet,
+    OuterRef,
+    Subquery,
+)
 from django.db.models.functions import Coalesce
 
 # Module imports
@@ -24,6 +32,7 @@ from plane.db.models import (
     ModuleIssue,
     IssueLabel,
 )
+from plane.utils.order_queryset import RELEASE_GROUP_KEY
 from typing import Optional, Dict, Tuple, Any, Union, List
 
 
@@ -39,21 +48,37 @@ def issue_queryset_grouper(
         "label_ids": "labels__id",
         "assignee_ids": "assignees__id",
         "module_ids": "issue_module__module_id",
-        "release_ids": "issue_releases__release_id",
+        "release_ids": RELEASE_GROUP_KEY,
     }
 
     GROUP_FILTER_MAPPER: Dict[str, Q] = {
         "assignees__id": Q(issue_assignee__deleted_at__isnull=True),
         "labels__id": Q(label_issue__deleted_at__isnull=True),
         "issue_module__module_id": Q(issue_module__deleted_at__isnull=True),
-        # Release scope rows are soft-deleted when an item is removed from a
-        # release; without this the group would still contain the tombstones.
-        "issue_releases__release_id": Q(issue_releases__deleted_at__isnull=True),
     }
 
     for group_key in [group_by, sub_group_by]:
         if group_key in GROUP_FILTER_MAPPER:
             queryset = queryset.filter(GROUP_FILTER_MAPPER[group_key])
+
+    # Release membership rows are soft-deleted when an item is removed from a
+    # release, so the tombstones have to be kept out of the group. They must NOT
+    # be excluded with a .filter() the way the three above are: Django promotes
+    # the join to LEFT OUTER for the `deleted_at__isnull=True` test, then demotes
+    # it back to INNER as soon as .values() selects release_id from that same
+    # join. The effect is that every work item with no release row at all
+    # vanishes from the response -- not merely miscounted, absent, including
+    # from the "None" column. (labels/modules dodge this only because they
+    # filter one relation, `label_issue`, and group by a different one,
+    # `labels`.) FilteredRelation puts the condition in the JOIN's ON clause,
+    # which keeps the outer join, so unreleased items still land in "None".
+    if RELEASE_GROUP_KEY in (group_by, sub_group_by):
+        queryset = queryset.annotate(
+            active_release=FilteredRelation(
+                "issue_releases",
+                condition=Q(issue_releases__deleted_at__isnull=True),
+            )
+        )
 
     issue_assignee_subquery = Subquery(
         IssueAssignee.objects.filter(
@@ -118,7 +143,7 @@ def issue_on_results(
         "labels__id": "label_ids",
         "assignees__id": "assignee_ids",
         "issue_module__module_id": "module_ids",
-        "issue_releases__release_id": "release_ids",
+        RELEASE_GROUP_KEY: "release_ids",
     }
 
     original_list: List[str] = ["assignee_ids", "label_ids", "module_ids", "release_ids"]
@@ -203,7 +228,7 @@ def issue_group_values(
             return list(queryset.filter(project_id=project_id)) + ["None"]
         return list(queryset) + ["None"]
 
-    if field == "issue_releases__release_id":
+    if field == RELEASE_GROUP_KEY:
         # Releases are workspace-scoped (Release is deliberately not a
         # WorkspaceBaseModel), so unlike modules and cycles there is no
         # project_id to narrow by -- the same release list applies to every

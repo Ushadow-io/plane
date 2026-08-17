@@ -28,6 +28,7 @@ from rest_framework.viewsets import ModelViewSet
 from plane.authentication.session import BaseSessionAuthentication
 from plane.utils.exception_logger import log_exception
 from plane.utils.paginator import BasePaginator
+from plane.utils.order_queryset import APP_ISSUE_GROUP_BY_ALLOWLIST
 from plane.utils.core.mixins import ReadReplicaControlMixin
 
 
@@ -47,6 +48,11 @@ class TimezoneMixin:
 
 class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePaginator):
     model = None
+
+    # Authenticated surface: also permits grouping by release, which only
+    # plane/utils/grouper.py resolves (and annotates). The public Spaces base
+    # classes keep BasePaginator's narrower default.
+    group_by_allowlist = APP_ISSUE_GROUP_BY_ALLOWLIST
 
     permission_classes = [IsAuthenticated]
 
@@ -147,6 +153,9 @@ class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePagi
 
 
 class BaseAPIView(TimezoneMixin, ReadReplicaControlMixin, APIView, BasePaginator):
+    # See BaseViewSet.group_by_allowlist.
+    group_by_allowlist = APP_ISSUE_GROUP_BY_ALLOWLIST
+
     permission_classes = [IsAuthenticated]
 
     filter_backends = (DjangoFilterBackend, SearchFilter)

@@ -7,6 +7,7 @@ from django.test import RequestFactory
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 
+from plane.utils.order_queryset import APP_ISSUE_GROUP_BY_ALLOWLIST, RELEASE_GROUP_KEY
 from plane.utils.paginator import BasePaginator, Cursor, CursorResult
 
 
@@ -111,6 +112,41 @@ class TestPaginateGroupByValidation:
         )
         assert response.data["grouped_by"] == "priority"
         assert response.data["sub_grouped_by"] == "state_id"
+
+    def test_release_group_by_is_rejected_on_the_default_allowlist(self):
+        # A bare BasePaginator (what the public Spaces base classes inherit)
+        # must still refuse release grouping.
+        request = _make_request(group_by=RELEASE_GROUP_KEY)
+        with pytest.raises(ParseError):
+            BasePaginator().paginate(
+                request=request,
+                queryset=None,
+                paginator_cls=_StubGroupedPaginator,
+                group_by_field_name=RELEASE_GROUP_KEY,
+                group_by_fields=[],
+                count_filter=None,
+            )
+
+    def test_release_group_by_passes_for_a_view_that_opts_in(self):
+        # Mirrors plane/app/views/base.py. Regression test for the fork's
+        # `group_by: release`: the allowlist check sits upstream of
+        # grouper.py, so a missing entry 400s before any grouping runs.
+        class _AppPaginator(BasePaginator):
+            group_by_allowlist = APP_ISSUE_GROUP_BY_ALLOWLIST
+
+        request = _make_request(group_by=RELEASE_GROUP_KEY, sub_group_by="labels__id")
+        response = _AppPaginator().paginate(
+            request=request,
+            queryset=None,
+            paginator_cls=_StubGroupedPaginator,
+            group_by_field_name=RELEASE_GROUP_KEY,
+            group_by_fields=[],
+            sub_group_by_field_name="labels__id",
+            sub_group_by_fields=[],
+            count_filter=None,
+        )
+        assert response.data["grouped_by"] == RELEASE_GROUP_KEY
+        assert response.data["sub_grouped_by"] == "labels__id"
 
     def test_no_group_by_is_unaffected(self):
         # Plain (non-grouped) pagination must not be touched by this fix.

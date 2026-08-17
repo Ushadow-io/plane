@@ -4,7 +4,12 @@
 
 import pytest
 
-from plane.utils.order_queryset import ISSUE_GROUP_BY_ALLOWLIST, sanitize_order_by
+from plane.utils.order_queryset import (
+    APP_ISSUE_GROUP_BY_ALLOWLIST,
+    ISSUE_GROUP_BY_ALLOWLIST,
+    RELEASE_GROUP_KEY,
+    sanitize_order_by,
+)
 
 
 @pytest.mark.unit
@@ -48,6 +53,20 @@ class TestIssueGroupByAllowlist:
         ]
         for value in dangerous_values:
             assert value not in ISSUE_GROUP_BY_ALLOWLIST
+            assert value not in APP_ISSUE_GROUP_BY_ALLOWLIST
+
+
+@pytest.mark.unit
+class TestAppAllowlistAddsReleaseOnly:
+    """The authenticated surface groups by release; the public Spaces surface
+    must not, because plane/space/utils/grouper.py has no branch resolving
+    the release group key, and never annotates the FilteredRelation it names."""
+
+    def test_app_allowlist_is_base_plus_release(self):
+        assert APP_ISSUE_GROUP_BY_ALLOWLIST == ISSUE_GROUP_BY_ALLOWLIST | {RELEASE_GROUP_KEY}
+
+    def test_release_is_absent_from_the_default_allowlist(self):
+        assert RELEASE_GROUP_KEY not in ISSUE_GROUP_BY_ALLOWLIST
 
 
 @pytest.mark.unit
