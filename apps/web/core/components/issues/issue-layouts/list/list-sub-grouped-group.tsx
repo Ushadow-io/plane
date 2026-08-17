@@ -105,6 +105,8 @@ export const ListSubGroupedGroup = observer(function ListSubGroupedGroup(props: 
         className="sticky top-0 z-[3] w-full flex-shrink-0 cursor-pointer border-b border-subtle bg-layer-1 py-1.5 pr-3 hover:bg-layer-1-hover"
         onClick={() => handleCollapsedGroups(group.id, "group_by")}
       >
+        {/* Outer level: deliberately a size ABOVE the sub-group header, which
+            renders its title at text-13 via HeaderGroupByCard's `compact`. */}
         <div className="flex items-center gap-2">
           <ChevronRight
             className={cn("size-4 flex-shrink-0 text-secondary transition-transform", {
@@ -112,7 +114,7 @@ export const ListSubGroupedGroup = observer(function ListSubGroupedGroup(props: 
             })}
           />
           {group.icon}
-          <span className="text-13 font-semibold text-primary">{group.name}</span>
+          <span className="text-14 font-semibold text-primary">{group.name}</span>
           <span className="text-13 font-medium text-secondary">{groupIssueCount}</span>
         </div>
       </Row>
