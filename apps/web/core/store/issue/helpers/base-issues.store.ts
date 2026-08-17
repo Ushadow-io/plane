@@ -304,7 +304,12 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     const displayFilters = this.issueFilterStore?.issueFilters?.displayFilters;
     if (!displayFilters || displayFilters.group_by === displayFilters.sub_group_by) return;
 
-    return displayFilters?.layout === "kanban" ? displayFilters?.sub_group_by : undefined;
+    // This gate is upstream of the FETCH, not just the rendering: returning
+    // undefined makes the store request flat data, so the server never nests it.
+    // Kanban renders sub-groups as swimlanes, list as nested collapsible
+    // sections -- both need the two-level payload.
+    const SUB_GROUPABLE_LAYOUTS = ["kanban", "list"];
+    return SUB_GROUPABLE_LAYOUTS.includes(displayFilters?.layout ?? "") ? displayFilters?.sub_group_by : undefined;
   }
 
   getIssueIds = (groupId?: string, subGroupId?: string) => {

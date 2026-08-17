@@ -66,11 +66,19 @@ interface Props {
   addIssuesToView?: (issueIds: string[]) => Promise<TIssue>;
   isCompletedCycle?: boolean;
   showEmptyGroup?: boolean;
-  loadMoreIssues: (groupId?: string) => void;
+  loadMoreIssues: (groupId?: string, subGroupId?: string) => void;
   selectionHelpers: TSelectionHelper;
-  handleCollapsedGroups: (value: string) => void;
+  handleCollapsedGroups: (value: string, toggle?: "group_by" | "sub_group_by") => void;
   collapsedGroups: TIssueKanbanFilters;
   isEpic?: boolean;
+  /**
+   * Set when this ListGroup is rendered as the INNER level of a sub-grouped
+   * list. The store keys counts, pagination and loaders by
+   * (groupId, subGroupId), so the inner level has to pass its parent's id as
+   * groupId and its own as subGroupId. Left undefined the component behaves
+   * exactly as before, which keeps the flat path untouched.
+   */
+  parentGroupId?: string;
 }
 
 export const ListGroup = observer(function ListGroup(props: Props) {
@@ -98,11 +106,20 @@ export const ListGroup = observer(function ListGroup(props: Props) {
     handleCollapsedGroups,
     collapsedGroups,
     isEpic = false,
+    parentGroupId,
   } = props;
 
   const [isDraggingOverColumn, setIsDraggingOverColumn] = useState(false);
   const [dragColumnOrientation, setDragColumnOrientation] = useState<"justify-start" | "justify-end">("justify-start");
-  const isExpanded = !collapsedGroups?.group_by.includes(group.id);
+
+  // When nested, this group is a SUB-group: its store keys are
+  // (parentGroupId, group.id) and its collapse state lives under sub_group_by.
+  const isSubGroup = !!parentGroupId;
+  const countGroupId = isSubGroup ? parentGroupId : group.id;
+  const countSubGroupId = isSubGroup ? group.id : undefined;
+  const isExpanded = isSubGroup
+    ? !collapsedGroups?.sub_group_by.includes(group.id)
+    : !collapsedGroups?.group_by.includes(group.id);
   const groupRef = useRef<HTMLDivElement | null>(null);
   const { t } = useTranslation();
   const projectState = useProjectState();
@@ -117,9 +134,9 @@ export const ListGroup = observer(function ListGroup(props: Props) {
     useWorkFlowFDragNDrop(group_by);
   const isWorkflowIssueCreationDisabled = getIsWorkflowWorkItemCreationDisabled(group.id);
 
-  const groupIssueCount = getGroupIssueCount(group.id, undefined, false) ?? 0;
-  const nextPageResults = getPaginationData(group.id, undefined)?.nextPageResults;
-  const isPaginating = !!getIssueLoader(group.id);
+  const groupIssueCount = getGroupIssueCount(countGroupId, countSubGroupId, false) ?? 0;
+  const nextPageResults = getPaginationData(countGroupId, countSubGroupId)?.nextPageResults;
+  const isPaginating = !!getIssueLoader(countGroupId, countSubGroupId);
 
   useIntersectionObserver(containerRef, isPaginating ? null : intersectionElement, loadMoreIssues, `100% 0% 100% 0%`);
 
@@ -136,7 +153,7 @@ export const ListGroup = observer(function ListGroup(props: Props) {
       className={
         "relative flex h-11 cursor-pointer items-center gap-3 border border-transparent border-t-subtle-1 bg-surface-1 p-3 pl-8 text-13 font-medium text-accent-primary hover:text-accent-secondary hover:underline"
       }
-      onClick={() => loadMoreIssues(group.id)}
+      onClick={() => loadMoreIssues(countGroupId, countSubGroupId)}
     >
       {t("common.load_more")} &darr;
     </div>
@@ -180,6 +197,12 @@ export const ListGroup = observer(function ListGroup(props: Props) {
     const element = groupRef.current;
 
     if (!element) return;
+
+    // Drag-and-drop is deliberately not wired for the nested (sub-grouped)
+    // list: a drop there would have to update BOTH the group and sub-group
+    // fields, and the drop payload carries only a single groupId. Registering
+    // the target anyway would accept the drop and silently apply half of it.
+    if (isSubGroup) return;
 
     return combine(
       dropTargetForElements({
@@ -232,7 +255,7 @@ export const ListGroup = observer(function ListGroup(props: Props) {
           highlightIssueOnDrop(getIssueBlockId(source.id, destination?.groupId), orderBy !== "sort_order");
 
           if (!isExpanded) {
-            handleCollapsedGroups(group.id);
+            handleCollapsedGroups(group.id, "group_by");
           }
         },
       })
@@ -246,9 +269,11 @@ export const ListGroup = observer(function ListGroup(props: Props) {
     setDragColumnOrientation,
     setIsDraggingOverColumn,
     isWorkflowDropDisabled,
+    isSubGroup,
   ]);
 
-  const isDragAllowed = group_by ? DRAG_ALLOWED_GROUPS.includes(group_by) : true;
+  // Nested list rows are not draggable: see the drop-target guard above.
+  const isDragAllowed = isSubGroup ? false : group_by ? DRAG_ALLOWED_GROUPS.includes(group_by) : true;
   const canOverlayBeVisible = isWorkflowDropDisabled || orderBy !== "sort_order" || !!group.isDropDisabled;
   const isDropDisabled = isWorkflowDropDisabled || !!group.isDropDisabled;
 
@@ -265,7 +290,11 @@ export const ListGroup = observer(function ListGroup(props: Props) {
     >
       <Row
         className={cn("w-full flex-shrink-0 border-b border-subtle bg-layer-1 py-1 pr-3 hover:bg-layer-1-hover", {
-          "sticky top-0 z-[2]": isExpanded && groupIssueCount > 0,
+          // Only the OUTER header may stick; two competing sticky headers
+          // overlap as you scroll.
+          "sticky top-0 z-[2]": isExpanded && groupIssueCount > 0 && !isSubGroup,
+          // Indent the nested level so the hierarchy reads at a glance.
+          "pl-6": isSubGroup,
         })}
       >
         <HeaderGroupByCard
@@ -281,7 +310,7 @@ export const ListGroup = observer(function ListGroup(props: Props) {
           }
           addIssuesToView={addIssuesToView}
           selectionHelpers={selectionHelpers}
-          handleCollapsedGroups={handleCollapsedGroups}
+          handleCollapsedGroups={(value) => handleCollapsedGroups(value, isSubGroup ? "sub_group_by" : "group_by")}
           isEpic={isEpic}
         />
       </Row>
