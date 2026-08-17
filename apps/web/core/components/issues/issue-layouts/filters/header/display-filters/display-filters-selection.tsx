@@ -90,10 +90,12 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
         </div>
       )}
 
-      {/* sub-group by */}
+      {/* sub-group by -- kanban renders these as swimlanes, list as nested
+          collapsible sections. Still gated on group_by: sub-grouping has no
+          meaning without an outer axis. */}
       {isDisplayFilterEnabled("sub_group_by") &&
         displayFilters?.group_by !== null &&
-        displayFilters?.layout === "kanban" && (
+        (displayFilters?.layout === "kanban" || displayFilters?.layout === "list") && (
           <div className="py-2">
             <FilterSubGroupBy
               displayFilters={displayFilters}

@@ -79,6 +79,9 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
   const orderBy = displayFilters?.order_by || undefined;
 
   const group_by = (displayFilters?.group_by || null) as GroupByColumnTypes | null;
+  // Only meaningful alongside a group_by, and the store additionally refuses to
+  // return a nested payload when the two axes are identical.
+  const sub_group_by = (group_by ? displayFilters?.sub_group_by || null : null) as GroupByColumnTypes | null;
   const showEmptyGroup = displayFilters?.show_empty_groups ?? false;
 
   const { workspaceSlug, projectId } = useParams();
@@ -99,9 +102,13 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
   const { enableInlineEditing, enableQuickAdd, enableIssueCreation } = issues?.viewFlags || {};
 
   const canEditProperties = useCallback(
-    (projectId: string | undefined) => {
+    // Not `projectId`: that shadows the useParams() destructure above, which
+    // oxlint's no-shadow rejects (and it reports the outer line, not this one).
+    (targetProjectId: string | undefined) => {
       const isEditingAllowedBasedOnProject =
-        canEditPropertiesBasedOnProject && projectId ? canEditPropertiesBasedOnProject(projectId) : isEditingAllowed;
+        canEditPropertiesBasedOnProject && targetProjectId
+          ? canEditPropertiesBasedOnProject(targetProjectId)
+          : isEditingAllowed;
 
       return !!enableInlineEditing && isEditingAllowedBasedOnProject;
     },
@@ -128,24 +135,27 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
   );
 
   const loadMoreIssues = useCallback(
-    (groupId?: string) => {
-      fetchNextIssues(groupId);
+    (groupId?: string, subGroupId?: string) => {
+      fetchNextIssues(groupId, subGroupId);
     },
     [fetchNextIssues]
   );
 
   // kanbanFilters and EIssueFilterType.KANBAN_FILTERS are used because the state is shared between kanban view and list view
   const handleCollapsedGroups = useCallback(
-    (value: string) => {
+    (value: string, toggle: "group_by" | "sub_group_by" = "group_by") => {
       if (workspaceSlug) {
-        let collapsedGroups = issuesFilter?.issueFilters?.kanbanFilters?.group_by || [];
-        if (collapsedGroups.includes(value)) {
-          collapsedGroups = collapsedGroups.filter((_value) => _value != value);
+        // A sub-grouped list has two independent collapse levels, so the key
+        // being toggled has to be named. Defaulting to "group_by" keeps every
+        // existing single-argument caller behaving as before.
+        let collapsed = issuesFilter?.issueFilters?.kanbanFilters?.[toggle] || [];
+        if (collapsed.includes(value)) {
+          collapsed = collapsed.filter((_value) => _value != value);
         } else {
-          collapsedGroups.push(value);
+          collapsed.push(value);
         }
         updateFilters(projectId?.toString() ?? "", EIssueFilterType.KANBAN_FILTERS, {
-          group_by: collapsedGroups,
+          [toggle]: collapsed,
         } as TIssueKanbanFilters);
       }
     },
@@ -159,6 +169,7 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
           issuesMap={issueMap}
           displayProperties={displayProperties}
           group_by={group_by}
+          sub_group_by={sub_group_by}
           orderBy={orderBy}
           updateIssue={updateIssue}
           quickActions={renderQuickActions}
