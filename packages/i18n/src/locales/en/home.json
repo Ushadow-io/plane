@@ -35,7 +35,9 @@
       "empty": "Save links to work things that you'd like handy.",
       "add": "Add quick Link",
       "title": "Quicklink",
-      "title_plural": "Quicklinks"
+      "title_plural": "Quicklinks",
+      "share_with_workspace": "Share with workspace",
+      "shared_by_you": "Shared with workspace"
     },
     "recents": {
       "title": "Recents",

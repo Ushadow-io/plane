@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import { Share2 } from "lucide-react";
 // plane utils
 import { calculateTimeAgo, cn, getIconForLink } from "@plane/utils";
 // plane ui
@@ -17,23 +18,37 @@ export type TLinkItemBlockProps = {
   createdAt?: Date | string;
   menuItems?: TContextMenuItem[];
   onClick?: () => void;
+  isShared?: boolean;
+  sharedLabel?: string;
 };
 
 export function LinkItemBlock(props: TLinkItemBlockProps) {
   // props
-  const { title, url, createdAt, menuItems, onClick } = props;
+  const { title, url, createdAt, menuItems, onClick, isShared, sharedLabel } = props;
   // icons
   const Icon = getIconForLink(url);
   return (
     <div
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      // oxlint-disable-next-line jsx_a11y/prefer-tag-over-role -- a real <button> would nest inside the menu's own <button>
+      role="button"
+      tabIndex={0}
       className="group flex h-[56px] w-[230px] cursor-pointer items-center gap-4 rounded-md border-[0.5px] border-subtle bg-surface-1 px-4"
     >
       <div className="grid size-8 flex-shrink-0 place-items-center rounded-sm bg-surface-2 p-2">
         <Icon className="size-4 stroke-2 text-tertiary group-hover:text-primary" />
       </div>
       <div className="flex-1 truncate">
-        <div className="truncate text-13 font-medium">{title}</div>
+        <div className="flex items-center gap-1 truncate text-13 font-medium">
+          <span className="truncate">{title}</span>
+          {isShared && <Share2 className="size-3 flex-shrink-0 text-tertiary" aria-label={sharedLabel} />}
+        </div>
         {createdAt && <div className="text-11 font-medium text-placeholder">{calculateTimeAgo(createdAt)}</div>}
       </div>
       {menuItems && (

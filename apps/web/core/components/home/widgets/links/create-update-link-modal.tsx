@@ -12,7 +12,7 @@ import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import type { TLinkEditableFields } from "@plane/types";
-import { Input, ModalCore } from "@plane/ui";
+import { Input, ModalCore, ToggleSwitch } from "@plane/ui";
 import type { TLinkOperations } from "./use-links";
 
 export type TLinkOperationsModal = Exclude<TLinkOperations, "remove">;
@@ -31,6 +31,7 @@ export type TLinkCreateEditModal = {
 const defaultValues: TLinkCreateFormFieldOptions = {
   title: "",
   url: "",
+  is_shared: false,
 };
 
 export const LinkCreateUpdateModal = observer(function LinkCreateUpdateModal(props: TLinkCreateEditModal) {
@@ -54,8 +55,14 @@ export const LinkCreateUpdateModal = observer(function LinkCreateUpdateModal(pro
   const handleFormSubmit = async (formData: TLinkCreateFormFieldOptions) => {
     const parsedUrl = formData.url.startsWith("http") ? formData.url : `http://${formData.url}`;
     try {
-      if (!formData || !formData.id) await linkOperations.create({ title: formData.title, url: parsedUrl });
-      else await linkOperations.update(formData.id, { title: formData.title, url: parsedUrl });
+      if (!formData || !formData.id)
+        await linkOperations.create({ title: formData.title, url: parsedUrl, is_shared: formData.is_shared });
+      else
+        await linkOperations.update(formData.id, {
+          title: formData.title,
+          url: parsedUrl,
+          is_shared: formData.is_shared,
+        });
       onClose();
     } catch (error) {
       console.error("error", error);
@@ -120,6 +127,18 @@ export const LinkCreateUpdateModal = observer(function LinkCreateUpdateModal(pro
                     placeholder={t("link.modal.title.placeholder")}
                     className="w-full"
                   />
+                )}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <label htmlFor="is_shared" className="text-14 font-medium text-secondary">
+                {t("home.quick_links.share_with_workspace")}
+              </label>
+              <Controller
+                control={control}
+                name="is_shared"
+                render={({ field: { value, onChange } }) => (
+                  <ToggleSwitch value={Boolean(value)} onChange={onChange} size="sm" />
                 )}
               />
             </div>

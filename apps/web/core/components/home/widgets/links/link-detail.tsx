@@ -16,6 +16,7 @@ import { LinkItemBlock } from "@plane/ui";
 import { copyTextToClipboard } from "@plane/utils";
 // hooks
 import { useHome } from "@/hooks/store/use-home";
+import { useUser } from "@/hooks/store/user";
 // types
 import type { TLinkOperations } from "./use-links";
 
@@ -31,10 +32,12 @@ export const ProjectLinkDetail = observer(function ProjectLinkDetail(props: TPro
   const {
     quickLinks: { getLinkById, toggleLinkModal, setLinkData },
   } = useHome();
+  const { data: currentUser } = useUser();
   const { t } = useTranslation();
   // derived values
   const linkDetail = getLinkById(linkId);
   const linkUrl = linkDetail?.url;
+  const isOwner = !!currentUser?.id && linkDetail?.created_by_id === currentUser.id;
 
   // handlers
   const handleEdit = useCallback(
@@ -45,14 +48,13 @@ export const ProjectLinkDetail = observer(function ProjectLinkDetail(props: TPro
     [linkDetail, setLinkData, toggleLinkModal]
   );
 
-  const handleCopyText = useCallback(() => {
+  const handleCopyText = useCallback(async () => {
     if (!linkUrl) return;
-    copyTextToClipboard(linkUrl).then(() => {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: t("link_copied"),
-        message: t("view_link_copied_to_clipboard"),
-      });
+    await copyTextToClipboard(linkUrl);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: t("link_copied"),
+      message: t("view_link_copied_to_clipboard"),
     });
   }, [linkUrl, t]);
 
@@ -67,12 +69,16 @@ export const ProjectLinkDetail = observer(function ProjectLinkDetail(props: TPro
   // derived values
   const menuItems = useMemo<TContextMenuItem[]>(
     () => [
-      {
-        key: "edit",
-        action: () => handleEdit(true),
-        title: t("edit"),
-        icon: EditIcon,
-      },
+      ...(isOwner
+        ? [
+            {
+              key: "edit",
+              action: () => handleEdit(true),
+              title: t("edit"),
+              icon: EditIcon,
+            },
+          ]
+        : []),
       {
         key: "open-new-tab",
         action: handleOpenInNewTab,
@@ -85,14 +91,18 @@ export const ProjectLinkDetail = observer(function ProjectLinkDetail(props: TPro
         title: t("copy_link"),
         icon: LinkIcon,
       },
-      {
-        key: "delete",
-        action: handleDelete,
-        title: t("delete"),
-        icon: TrashIcon,
-      },
+      ...(isOwner
+        ? [
+            {
+              key: "delete",
+              action: handleDelete,
+              title: t("delete"),
+              icon: TrashIcon,
+            },
+          ]
+        : []),
     ],
-    [handleEdit, handleOpenInNewTab, handleCopyText, handleDelete, t]
+    [isOwner, handleEdit, handleOpenInNewTab, handleCopyText, handleDelete, t]
   );
 
   if (!linkDetail) return null;
@@ -104,6 +114,8 @@ export const ProjectLinkDetail = observer(function ProjectLinkDetail(props: TPro
       createdAt={linkDetail.created_at}
       menuItems={menuItems}
       onClick={handleOpenInNewTab}
+      isShared={linkDetail.is_shared}
+      sharedLabel={t("home.quick_links.shared_by_you")}
     />
   );
 });

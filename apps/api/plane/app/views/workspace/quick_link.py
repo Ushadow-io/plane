@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 # Third party imports
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -59,7 +60,9 @@ class QuickLinkViewSet(BaseViewSet):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def list(self, request, slug):
-        quick_links = WorkspaceUserLink.objects.filter(workspace__slug=slug, owner=request.user)
+        quick_links = WorkspaceUserLink.objects.filter(
+            Q(owner=request.user) | Q(is_shared=True), workspace__slug=slug
+        )
 
         serializer = WorkspaceUserLinkSerializer(quick_links, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

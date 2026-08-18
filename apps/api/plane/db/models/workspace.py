@@ -377,6 +377,7 @@ class WorkspaceUserLink(WorkspaceBaseModel):
         on_delete=models.CASCADE,
         related_name="owner_workspace_user_link",
     )
+    is_shared = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Workspace User Link"

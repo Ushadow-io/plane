@@ -55,6 +55,7 @@ export type TActivityEntityData = {
 export type TLinkEditableFields = {
   title: string;
   url: string;
+  is_shared: boolean;
 };
 
 export type TLink = TLinkEditableFields & {
