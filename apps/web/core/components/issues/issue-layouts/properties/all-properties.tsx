@@ -10,7 +10,7 @@ import { xor } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // icons
-import { Paperclip } from "lucide-react";
+import { CalendarDays, Paperclip } from "lucide-react";
 // i18n
 import { useTranslation } from "@plane/i18n";
 import { LinkIcon, StartDatePropertyIcon, ViewsIcon, DueDatePropertyIcon } from "@plane/propel/icons";
@@ -20,6 +20,7 @@ import type { TIssue, IIssueDisplayProperties, TIssuePriorities } from "@plane/t
 import {
   cn,
   getDate,
+  renderFormattedDate,
   renderFormattedPayloadDate,
   generateWorkItemLink,
   shouldHighlightIssueDueDate,
@@ -470,6 +471,30 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
           </PropertySlot>
         </WithDisplayPropertiesHOC>
       )}
+
+      {/* created on */}
+      <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="created_on">
+        <PropertySlot width={PROPERTY_COLUMN.date} isColumnar={alignInColumns} stopPropagation={false}>
+          <Tooltip tooltipHeading={t("common.sort.created_on")} tooltipContent={renderFormattedDate(issue.created_at)}>
+            <div className="flex h-5 w-min flex-shrink-0 items-center gap-1 rounded-sm border-[0.5px] border-strong px-2.5 py-1 text-caption-sm-regular text-secondary">
+              <CalendarDays className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
+              {renderFormattedDate(issue.created_at)}
+            </div>
+          </Tooltip>
+        </PropertySlot>
+      </WithDisplayPropertiesHOC>
+
+      {/* updated on */}
+      <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="updated_on">
+        <PropertySlot width={PROPERTY_COLUMN.date} isColumnar={alignInColumns} stopPropagation={false}>
+          <Tooltip tooltipHeading={t("common.sort.updated_on")} tooltipContent={renderFormattedDate(issue.updated_at)}>
+            <div className="flex h-5 w-min flex-shrink-0 items-center gap-1 rounded-sm border-[0.5px] border-strong px-2.5 py-1 text-caption-sm-regular text-secondary">
+              <CalendarDays className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
+              {renderFormattedDate(issue.updated_at)}
+            </div>
+          </Tooltip>
+        </PropertySlot>
+      </WithDisplayPropertiesHOC>
 
       {/* extra render properties */}
       {/* sub-issues */}

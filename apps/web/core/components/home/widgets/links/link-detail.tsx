@@ -37,7 +37,7 @@ export const ProjectLinkDetail = observer(function ProjectLinkDetail(props: TPro
   // derived values
   const linkDetail = getLinkById(linkId);
   const linkUrl = linkDetail?.url;
-  const isOwner = !!currentUser?.id && linkDetail?.created_by_id === currentUser.id;
+  const isOwner = !!currentUser?.id && linkDetail?.owner === currentUser.id;
 
   // handlers
   const handleEdit = useCallback(

@@ -59,7 +59,7 @@ export type TLinkEditableFields = {
 };
 
 export type TLink = TLinkEditableFields & {
-  created_by_id: string;
+  owner: string;
   id: string;
   metadata: any;
   workspace_slug: string;
