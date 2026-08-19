@@ -52,11 +52,16 @@ export function EditorAIMenu(props: Props) {
     [workspaceSlug, isSubmitting]
   );
 
-  const handleInsertText = (insertOnNextLine: boolean) => {
-    if (!response) return;
-    editorRef?.insertText(response, insertOnNextLine);
-    onClose();
-  };
+  // No editor to insert into from a context-free launch point (e.g. the
+  // global nav's Ask AI button) -- AskPiMenu hides the insert controls when
+  // this is undefined.
+  const handleInsertText = editorRef
+    ? (insertOnNextLine: boolean) => {
+        if (!response) return;
+        editorRef.insertText(response, insertOnNextLine);
+        onClose();
+      }
+    : undefined;
 
   // reset on close
   useEffect(() => {

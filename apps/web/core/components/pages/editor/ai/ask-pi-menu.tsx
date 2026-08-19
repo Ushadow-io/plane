@@ -16,7 +16,9 @@ import { RichTextEditor } from "@/components/editor/rich-text";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 
 type Props = {
-  handleInsertText: (insertOnNextLine: boolean) => void;
+  // Omitted when there's no document open to insert into (e.g. the global
+  // nav's Ask AI button) -- Replace/insert controls are hidden in that case.
+  handleInsertText?: (insertOnNextLine: boolean) => void;
   isSubmitting: boolean;
   onSubmit: (query: string) => void;
   response: string | undefined;
@@ -62,22 +64,26 @@ export function AskPiMenu(props: Props) {
               workspaceSlug={workspaceSlug}
             />
             <div className="mt-3 flex items-center gap-4">
-              <button
-                type="button"
-                className="rounded-sm p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1"
-                onClick={() => handleInsertText(false)}
-              >
-                Replace selection
-              </button>
-              <Tooltip tooltipContent="Add to next line">
-                <button
-                  type="button"
-                  className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
-                  onClick={() => handleInsertText(true)}
-                >
-                  <CornerDownRight className="size-4 text-tertiary" />
-                </button>
-              </Tooltip>
+              {handleInsertText && (
+                <>
+                  <button
+                    type="button"
+                    className="rounded-sm p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1"
+                    onClick={() => handleInsertText(false)}
+                  >
+                    Replace selection
+                  </button>
+                  <Tooltip tooltipContent="Add to next line">
+                    <button
+                      type="button"
+                      className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
+                      onClick={() => handleInsertText(true)}
+                    >
+                      <CornerDownRight className="size-4 text-tertiary" />
+                    </button>
+                  </Tooltip>
+                </>
+              )}
               <Tooltip tooltipContent="Re-generate response">
                 <button
                   type="button"
