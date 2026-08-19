@@ -14,6 +14,7 @@ import type { Pixel, TCustomImageAttributes, TCustomImageSize } from "../types";
 import { ensurePixelString, getImageBlockId, isImageDuplicating } from "../utils";
 import type { CustomImageNodeViewProps } from "./node-view";
 import { ImageToolbarRoot } from "./toolbar";
+import { ImageFullScreenModal } from "./toolbar/full-screen/modal";
 import { ImageUploadStatus } from "./upload-status";
 
 const MIN_SIZE = 100;
@@ -59,6 +60,7 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
   });
   const [isResizing, setIsResizing] = useState(false);
   const [initialResizeComplete, setInitialResizeComplete] = useState(false);
+  const [isFullScreenEnabled, setIsFullScreenEnabled] = useState(false);
   // refs
   const containerRef = useRef<HTMLDivElement>(null);
   const containerRect = useRef<DOMRect | null>(null);
@@ -210,6 +212,18 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
     [editor, getPos, isTouchDevice]
   );
 
+  // Read-only viewing (e.g. an issue's peek/detail view) has no resize
+  // handles to click through, so a direct click/keypress opening the
+  // full-screen viewer is the expected default there. While actively
+  // editing, a click still just selects the node (via handleImageMouseDown
+  // above) so users can resize/reposition it -- the hover toolbar's expand
+  // icon remains the way to go full screen in that mode.
+  const openFullScreenIfReadOnly = useCallback(() => {
+    if (!editor.isEditable && resolvedImageSrc) {
+      setIsFullScreenEnabled(true);
+    }
+  }, [editor.isEditable, resolvedImageSrc]);
+
   const isDuplicating = isImageDuplicating(status);
   // show the image loader if the remote image's src or preview image from filesystem is not set yet (while loading the image post upload) (or)
   // if the initial resize (from 35% width and "auto" height attrs to the actual size in px) is not complete
@@ -235,6 +249,7 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
         "ml-[100%] -translate-x-full": nodeAlignment === "right",
       })}
     >
+      {/* oxlint-disable-next-line jsx_a11y/no-static-element-interactions -- pre-existing: onMouseDown only drives ProseMirror node selection, not a click affordance */}
       <div
         ref={containerRef}
         className="group/image-component relative inline-block max-w-full"
@@ -251,6 +266,16 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
           ref={imageRef}
           src={displayedImageSrc}
           alt=""
+          role={!editor.isEditable ? "button" : undefined}
+          tabIndex={!editor.isEditable ? 0 : undefined}
+          aria-label={!editor.isEditable ? "View image in full screen" : undefined}
+          onClick={openFullScreenIfReadOnly}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openFullScreenIfReadOnly();
+            }
+          }}
           onLoad={handleImageLoad}
           onError={(_e) =>
             void (async () => {
@@ -305,19 +330,32 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
           <ImageUploadStatus editor={editor} nodeId={node.attrs[ECustomImageAttributeNames.ID]} />
         )}
         {showImageToolbar && (
-          <ImageToolbarRoot
-            alignment={nodeAlignment ?? "left"}
-            editor={editor}
-            aspectRatio={size.aspectRatio === null ? 1 : size.aspectRatio}
-            downloadSrc={resolvedDownloadSrc}
-            handleAlignmentChange={(alignment) =>
-              updateAttributesSafely({ alignment }, "Failed to update attributes while changing alignment:")
-            }
-            height={size.height}
-            isTouchDevice={isTouchDevice}
-            width={size.width}
-            src={resolvedImageSrc}
-          />
+          <>
+            <ImageToolbarRoot
+              alignment={nodeAlignment ?? "left"}
+              editor={editor}
+              aspectRatio={size.aspectRatio === null ? 1 : size.aspectRatio}
+              downloadSrc={resolvedDownloadSrc}
+              handleAlignmentChange={(alignment) =>
+                updateAttributesSafely({ alignment }, "Failed to update attributes while changing alignment:")
+              }
+              height={size.height}
+              isFullScreenEnabled={isFullScreenEnabled}
+              isTouchDevice={isTouchDevice}
+              setIsFullScreenEnabled={setIsFullScreenEnabled}
+              width={size.width}
+              src={resolvedImageSrc}
+            />
+            <ImageFullScreenModal
+              aspectRatio={size.aspectRatio === null ? 1 : size.aspectRatio}
+              downloadSrc={resolvedDownloadSrc}
+              isFullScreenEnabled={isFullScreenEnabled}
+              isTouchDevice={isTouchDevice}
+              src={resolvedImageSrc}
+              width={size.width}
+              toggleFullScreenMode={setIsFullScreenEnabled}
+            />
+          </>
         )}
         {selected && displayedImageSrc === resolvedImageSrc && (
           <div className="pointer-events-none absolute inset-0 size-full bg-accent-primary/30" />
@@ -333,6 +371,7 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
                 }
               )}
             />
+            {/* oxlint-disable-next-line jsx_a11y/no-static-element-interactions -- pre-existing: drag-resize handle, mouse/touch-only by nature */}
             <div
               className={cn(
                 "absolute bottom-0 size-4 translate-y-1/2 rounded-full border-2 border-white bg-accent-primary transition-opacity duration-100 ease-in-out",
