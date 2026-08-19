@@ -33,13 +33,14 @@ type Props = {
 export function ImageExtension(props: Props) {
   const { fileHandler } = props;
   // derived values
-  const { getAssetSrc } = fileHandler;
+  const { getAssetSrc, getAssetDownloadSrc } = fileHandler;
 
   return ImageExtensionConfig.extend({
     addOptions() {
       return {
         ...this.parent?.(),
         getImageSource: getAssetSrc,
+        getImageDownloadSource: getAssetDownloadSrc,
       };
     },
 
@@ -62,8 +63,8 @@ export function ImageExtension(props: Props) {
 
     // render custom image node
     addNodeView() {
-      return ReactNodeViewRenderer((props) => (
-        <CustomImageNodeView {...props} node={props.node as CustomImageNodeViewProps["node"]} />
+      return ReactNodeViewRenderer((nodeViewProps) => (
+        <CustomImageNodeView {...nodeViewProps} node={nodeViewProps.node as CustomImageNodeViewProps["node"]} />
       ));
     },
   });
