@@ -182,10 +182,17 @@ class IssueAttachmentV2Endpoint(BaseAPIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            # Serve safe (non-script-capable) MIME types inline so images preview
+            # in the browser instead of forcing a download; script-capable types
+            # still force attachment to prevent same-origin XSS.
             storage = S3Storage(request=request)
+            asset_mime_type = (asset.attributes.get("type") or "").split(";")[0].strip().lower()
+            disposition = (
+                "attachment" if asset_mime_type in settings.SCRIPT_CAPABLE_MIME_TYPES else "inline"
+            )
             presigned_url = storage.generate_presigned_url(
                 object_name=asset.asset.name,
-                disposition="attachment",
+                disposition=disposition,
                 filename=asset.attributes.get("name"),
             )
             return HttpResponseRedirect(presigned_url)
