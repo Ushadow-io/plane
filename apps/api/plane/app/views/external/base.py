@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 # Python import
+import json
 import os
 from dataclasses import dataclass
 from typing import List, Dict, Tuple
@@ -21,6 +22,7 @@ from plane.db.models import Project, Workspace
 from plane.license.utils.instance_value import get_configuration_value
 from plane.utils.exception_logger import log_exception
 
+from .mcp_client import PlaneMCPClient, PlaneMCPError, mcp_tools_to_openai_schema
 from ..base import BaseAPIView
 
 
@@ -246,8 +248,39 @@ def _build_client(config: LLMConfig) -> OpenAI | AzureOpenAI:
     return OpenAI(api_key=config.api_key, base_url=config.base_url)
 
 
-def get_llm_response(task, prompt, config: LLMConfig) -> Tuple[str | None, str | None]:
-    """Helper to get LLM completion response"""
+# Upper bound on tool-call round-trips within one Ask AI request. A round is
+# one "model asks for tools -> we run them -> feed results back" cycle; most
+# questions resolve in 1-2. This exists so a model that keeps calling tools
+# (bad query, or genuinely needs more digging than it should) can't turn one
+# HTTP request into an unbounded chain of outbound calls.
+MAX_MCP_TOOL_ROUNDS = 5
+
+
+def _get_mcp_client(workspace_slug: str) -> "PlaneMCPClient | None":
+    """None means "no MCP tools for this request" -- unset MCP_URL/MCP_TOKEN
+    is a valid deployment (Ask AI still works as a plain chat completion),
+    not a config error, so this doesn't log_exception like get_llm_config
+    does for a genuinely broken LLM setup."""
+    mcp_url = os.environ.get("MCP_URL")
+    mcp_token = os.environ.get("MCP_TOKEN")
+    if not mcp_url or not mcp_token:
+        return None
+    return PlaneMCPClient(base_url=mcp_url, token=mcp_token, workspace_slug=workspace_slug)
+
+
+def get_llm_response(
+    task, prompt, config: LLMConfig, mcp_client: "PlaneMCPClient | None" = None
+) -> Tuple[str | None, str | None]:
+    """Helper to get LLM completion response.
+
+    When `mcp_client` is given, this becomes a bounded tool-calling loop
+    instead of a single completion: fetch plane-mcp-server's tool catalogue,
+    offer it to the model, and execute whatever tools it asks for (each tool
+    call runs as the workspace user behind MCP_TOKEN -- see mcp_client.py)
+    until it answers in plain text or MAX_MCP_TOOL_ROUNDS is hit. Every
+    provider here goes through the OpenAI SDK's chat-completions call (see
+    _build_client), so one code path covers tool-calling for all of them.
+    """
     final_text = task + "\n" + prompt
     model = config.model
     try:
@@ -258,11 +291,46 @@ def get_llm_response(task, prompt, config: LLMConfig) -> Tuple[str | None, str |
             model = f"gemini/{model}"
 
         client = _build_client(config)
-        chat_completion = client.chat.completions.create(
-            model=model, messages=[{"role": "user", "content": final_text}]
-        )
-        text = chat_completion.choices[0].message.content
-        return text, None
+        messages = [{"role": "user", "content": final_text}]
+
+        tools = None
+        if mcp_client is not None:
+            try:
+                tools = mcp_tools_to_openai_schema(mcp_client.list_tools())
+            except (requests.RequestException, PlaneMCPError) as e:
+                # plane-mcp-server being unreachable shouldn't take down Ask AI
+                # -- fall back to a plain completion instead of erroring out.
+                log_exception(e)
+                tools = None
+
+        rounds = MAX_MCP_TOOL_ROUNDS if tools else 1
+        message = None
+        for _ in range(rounds):
+            kwargs = {"model": model, "messages": messages}
+            if tools:
+                kwargs["tools"] = tools
+                kwargs["tool_choice"] = "auto"
+            chat_completion = client.chat.completions.create(**kwargs)
+            message = chat_completion.choices[0].message
+
+            if not message.tool_calls:
+                return message.content, None
+
+            messages.append(message.model_dump(exclude_none=True))
+            for tool_call in message.tool_calls:
+                try:
+                    arguments = json.loads(tool_call.function.arguments or "{}")
+                    result_text = mcp_client.call_tool(tool_call.function.name, arguments)
+                except (json.JSONDecodeError, PlaneMCPError, requests.RequestException) as e:
+                    log_exception(e)
+                    result_text = f"Error calling {tool_call.function.name}: {e}"
+                messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": result_text})
+
+        # Ran out of rounds without a plain-text answer -- ask once more with
+        # tools withdrawn so the model is forced to summarize what it has
+        # rather than the request just failing.
+        chat_completion = client.chat.completions.create(model=model, messages=messages)
+        return chat_completion.choices[0].message.content, None
     except Exception as e:
         log_exception(e)
         error_type = e.__class__.__name__
@@ -289,7 +357,8 @@ class GPTIntegrationEndpoint(BaseAPIView):
         if not task:
             return Response({"error": "Task is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        text, error = get_llm_response(task, request.data.get("prompt", False), config)
+        mcp_client = _get_mcp_client(slug)
+        text, error = get_llm_response(task, request.data.get("prompt", False), config, mcp_client=mcp_client)
         if not text and error:
             return Response(
                 {"error": "An internal error has occurred."},
@@ -325,7 +394,8 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
         if not task:
             return Response({"error": "Task is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        text, error = get_llm_response(task, request.data.get("prompt", False), config)
+        mcp_client = _get_mcp_client(slug)
+        text, error = get_llm_response(task, request.data.get("prompt", False), config, mcp_client=mcp_client)
         if not text and error:
             return Response(
                 {"error": "An internal error has occurred."},
