@@ -17,20 +17,25 @@ import { useWorkspace } from "@/hooks/store/use-workspace";
 
 type Props = {
   handleInsertText: (insertOnNextLine: boolean) => void;
-  handleRegenerate: () => Promise<void>;
-  isRegenerating: boolean;
+  isSubmitting: boolean;
+  onSubmit: (query: string) => void;
   response: string | undefined;
   workspaceSlug: string;
 };
 
 export function AskPiMenu(props: Props) {
-  const { handleInsertText, handleRegenerate, isRegenerating, response, workspaceSlug } = props;
+  const { handleInsertText, isSubmitting, onSubmit, response, workspaceSlug } = props;
   // states
   const [query, setQuery] = useState("");
   // store hooks
   const { getWorkspaceBySlug } = useWorkspace();
   // derived values
   const workspaceId = getWorkspaceBySlug(workspaceSlug)?.id ?? "";
+
+  const handleSubmit = () => {
+    if (!query.trim() || isSubmitting) return;
+    onSubmit(query);
+  };
 
   return (
     <>
@@ -80,13 +85,13 @@ export function AskPiMenu(props: Props) {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    handleRegenerate();
+                    handleSubmit();
                   }}
-                  disabled={isRegenerating}
+                  disabled={isSubmitting}
                 >
                   <RefreshCcw
                     className={cn("size-4 text-tertiary", {
-                      "animate-spin": isRegenerating,
+                      "animate-spin": isSubmitting,
                     })}
                   />
                 </button>
@@ -94,7 +99,9 @@ export function AskPiMenu(props: Props) {
             </div>
           </div>
         ) : (
-          <p className="text-13 text-secondary">AI is answering...</p>
+          <p className="text-13 text-secondary">
+            {isSubmitting ? "Pi is generating a response..." : "Ask Pi anything about this document."}
+          </p>
         )}
       </div>
       <div className="px-4 py-3">
@@ -107,11 +114,24 @@ export function AskPiMenu(props: Props) {
             className="w-full border-none bg-transparent text-13 outline-none placeholder:text-placeholder"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            disabled={isSubmitting}
             placeholder="Tell AI what to do..."
           />
-          <span className="grid size-4 flex-shrink-0 place-items-center">
+          <button
+            type="button"
+            className="grid size-4 flex-shrink-0 place-items-center disabled:opacity-40"
+            onClick={handleSubmit}
+            disabled={isSubmitting || !query.trim()}
+            aria-label="Ask Pi"
+          >
             <CircleArrowUp className="size-4 text-secondary" />
-          </span>
+          </button>
         </div>
       </div>
     </>

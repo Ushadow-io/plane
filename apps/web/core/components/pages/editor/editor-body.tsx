@@ -28,7 +28,6 @@ import { EditorMentionsRoot } from "@/components/editor/embeds/mentions";
 // hooks
 import { useEditorMention } from "@/hooks/editor";
 import { useMember } from "@/hooks/store/use-member";
-import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser } from "@/hooks/store/user";
 import { usePageFilters } from "@/hooks/use-page-filters";
 import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
@@ -95,7 +94,6 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
   const titleEditorRef = useRef<EditorTitleRefApi>(null);
   // store hooks
   const { data: currentUser } = useUser();
-  const { getWorkspaceBySlug } = useWorkspace();
   const { getUserDetails } = useMember();
   // derived values
   const {
@@ -104,7 +102,6 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     editor: { editorRef, updateAssetsList },
     setSyncingStatus,
   } = page;
-  const workspaceId = getWorkspaceBySlug(workspaceSlug)?.id ?? "";
   // use editor mention
   const { fetchMentions } = useEditorMention({
     enableAdvancedMentions: true,
@@ -155,15 +152,9 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
 
   const getAIMenu = useCallback(
     ({ isOpen, onClose }: TAIMenuProps) => (
-      <EditorAIMenu
-        editorRef={editorRef}
-        isOpen={isOpen}
-        onClose={onClose}
-        workspaceId={workspaceId}
-        workspaceSlug={workspaceSlug}
-      />
+      <EditorAIMenu editorRef={editorRef} isOpen={isOpen} onClose={onClose} workspaceSlug={workspaceSlug} />
     ),
-    [editorRef, workspaceId, workspaceSlug]
+    [editorRef, workspaceSlug]
   );
 
   const serverHandler: TServerHandler = useMemo(

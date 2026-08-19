@@ -11,6 +11,7 @@ import type { EPageStoreType } from "@/hooks/store";
 import type { TPageInstance } from "@/store/pages/base-page";
 // local imports
 import { PageOptionsDropdown } from "../editor/toolbar";
+import { PageAIAssistantControl } from "./ai-assistant-control";
 import { PageArchivedBadge } from "./archived-badge";
 import { PageCopyLinkControl } from "./copy-link-control";
 import { PageFavoriteControl } from "./favorite-control";
@@ -29,6 +30,7 @@ export const PageHeaderActions = observer(function PageHeaderActions(props: Prop
     <div className="flex items-center gap-1">
       <PageArchivedBadge page={page} />
       <PageOfflineBadge page={page} />
+      <PageAIAssistantControl page={page} />
       <PageLockControl page={page} />
       <PageCopyLinkControl page={page} />
       <PageFavoriteControl page={page} />

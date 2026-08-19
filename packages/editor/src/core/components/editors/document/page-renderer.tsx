@@ -4,8 +4,19 @@
  * See the LICENSE file for details.
  */
 
+import {
+  useFloating,
+  autoUpdate,
+  offset,
+  flip,
+  shift,
+  useDismiss,
+  useInteractions,
+  FloatingPortal,
+} from "@floating-ui/react";
 import type { HocuspocusProvider } from "@hocuspocus/provider";
 import type { Editor } from "@tiptap/react";
+import { useEffect, useRef, useState } from "react";
 // plane imports
 import { cn } from "@plane/utils";
 // components
@@ -43,6 +54,7 @@ type Props = {
 
 export function PageRenderer(props: Props) {
   const {
+    aiHandler,
     bubbleMenuEnabled,
     disabledExtensions,
     displayConfig,
@@ -59,6 +71,62 @@ export function PageRenderer(props: Props) {
     provider,
     state,
   } = props;
+
+  // AI handle popover -- triggered by clicking the "#ai-handle" button the side
+  // menu mounts on hover (see AIHandlePlugin). That plugin only sets a
+  // NodeSelection on click; it has no route back into React, so the trigger is
+  // detected the same way BlockMenu detects "#drag-handle": a global click
+  // listener matched against the DOM id, with a virtual Floating UI reference
+  // built from the clicked element's own bounding rect.
+  const [isAIMenuOpen, setIsAIMenuOpen] = useState(false);
+  const aiMenuRef = useRef<HTMLDivElement | null>(null);
+  const aiVirtualRef = useRef<{ getBoundingClientRect: () => DOMRect }>({
+    getBoundingClientRect: () => new DOMRect(),
+  });
+
+  const {
+    refs: aiRefs,
+    floatingStyles: aiFloatingStyles,
+    context: aiContext,
+  } = useFloating({
+    open: isAIMenuOpen,
+    onOpenChange: setIsAIMenuOpen,
+    middleware: [offset({ mainAxis: 8, crossAxis: -10 }), flip(), shift()],
+    whileElementsMounted: autoUpdate,
+    placement: "left-start",
+  });
+  const aiDismiss = useDismiss(aiContext);
+  const { getFloatingProps: getAIFloatingProps } = useInteractions([aiDismiss]);
+
+  useEffect(() => {
+    if (!aiHandler?.menu) return;
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const handle = target.closest("#ai-handle");
+      if (handle) {
+        event.preventDefault();
+        aiVirtualRef.current = { getBoundingClientRect: () => handle.getBoundingClientRect() };
+        aiRefs.setReference(aiVirtualRef.current);
+        setIsAIMenuOpen(true);
+        return;
+      }
+      if (aiMenuRef.current && !aiMenuRef.current.contains(target)) {
+        setIsAIMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsAIMenuOpen(false);
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [aiHandler?.menu, aiRefs]);
+
   return (
     <div
       className={cn("frame-renderer w-full flex-grow", {
@@ -112,6 +180,20 @@ export function PageRenderer(props: Props) {
                   flaggedExtensions={flaggedExtensions}
                   disabledExtensions={disabledExtensions}
                 />
+                {isAIMenuOpen && aiHandler?.menu && (
+                  <FloatingPortal>
+                    <div
+                      ref={(node) => {
+                        aiRefs.setFloating(node);
+                        aiMenuRef.current = node;
+                      }}
+                      style={{ ...aiFloatingStyles, zIndex: 100 }}
+                      {...getAIFloatingProps()}
+                    >
+                      {aiHandler.menu({ isOpen: isAIMenuOpen, onClose: () => setIsAIMenuOpen(false) })}
+                    </div>
+                  </FloatingPortal>
+                )}
               </div>
             )}
           </EditorContainer>
