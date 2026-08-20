@@ -10,6 +10,7 @@ import {
   offset,
   flip,
   shift,
+  size,
   useDismiss,
   useInteractions,
   FloatingPortal,
@@ -91,7 +92,35 @@ export function PageRenderer(props: Props) {
   } = useFloating({
     open: isAIMenuOpen,
     onOpenChange: setIsAIMenuOpen,
-    middleware: [offset({ mainAxis: 8, crossAxis: -10 }), flip(), shift()],
+    // The anchor is a virtual rect built from wherever the "#ai-handle" icon
+    // was clicked in the document (see aiVirtualRef below), which can be
+    // anywhere the user is scrolled to -- not fixed to any header. flip()/
+    // shift() only ever REPOSITION the popup; neither constrains its size, so
+    // a tall response opened near the bottom of the viewport rendered mostly
+    // off-screen with no way to scroll to the hidden part (EditorAIMenu's own
+    // max-h-[70vh] caps its size, not where it sits relative to the
+    // viewport). size() measures the space actually available near the
+    // anchor and clamps maxHeight/maxWidth to it, so the panel's internal
+    // overflow-y-auto (ask-pi-menu.tsx) has a real, always-visible boundary
+    // to scroll within.
+    middleware: [
+      offset({ mainAxis: 8, crossAxis: -10 }),
+      flip(),
+      shift({ padding: 8 }),
+      size({
+        padding: 8,
+        apply({ availableHeight, availableWidth, elements }) {
+          // overflow: hidden is load-bearing here, not decorative -- without
+          // it a child taller than maxHeight just renders past this box's
+          // bounds instead of being clipped/scrolled by it.
+          Object.assign(elements.floating.style, {
+            maxHeight: `${Math.max(200, availableHeight)}px`,
+            maxWidth: `${Math.max(280, availableWidth)}px`,
+            overflow: "hidden",
+          });
+        },
+      }),
+    ],
     whileElementsMounted: autoUpdate,
     placement: "left-start",
   });
