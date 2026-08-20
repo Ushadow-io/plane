@@ -212,17 +212,18 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
     [editor, getPos, isTouchDevice]
   );
 
-  // Read-only viewing (e.g. an issue's peek/detail view) has no resize
-  // handles to click through, so a direct click/keypress opening the
-  // full-screen viewer is the expected default there. While actively
-  // editing, a click still just selects the node (via handleImageMouseDown
-  // above) so users can resize/reposition it -- the hover toolbar's expand
-  // icon remains the way to go full screen in that mode.
-  const openFullScreenIfReadOnly = useCallback(() => {
-    if (!editor.isEditable && resolvedImageSrc) {
+  // editor.isEditable is true whenever the current user has edit rights on
+  // the document -- Plane's issue detail page IS the live editor for them,
+  // there is no separate read-only renderer to distinguish "viewing" from
+  // "editing" here. So click-to-fullscreen has to apply unconditionally.
+  // Resizing/repositioning stay unaffected: those use the dedicated corner
+  // handle and alignment button, not a click on the image body -- the
+  // existing onMouseDown below (node selection) still fires independently.
+  const openFullScreen = useCallback(() => {
+    if (resolvedImageSrc) {
       setIsFullScreenEnabled(true);
     }
-  }, [editor.isEditable, resolvedImageSrc]);
+  }, [resolvedImageSrc]);
 
   const isDuplicating = isImageDuplicating(status);
   // show the image loader if the remote image's src or preview image from filesystem is not set yet (while loading the image post upload) (or)
@@ -266,14 +267,15 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
           ref={imageRef}
           src={displayedImageSrc}
           alt=""
-          role={!editor.isEditable ? "button" : undefined}
-          tabIndex={!editor.isEditable ? 0 : undefined}
-          aria-label={!editor.isEditable ? "View image in full screen" : undefined}
-          onClick={openFullScreenIfReadOnly}
+          // oxlint-disable-next-line jsx_a11y/prefer-tag-over-role -- an actual <button> wrapper would break the resize/toolbar layout below, which positions off this element's own box
+          role="button"
+          tabIndex={0}
+          aria-label="View image in full screen"
+          onClick={openFullScreen}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              openFullScreenIfReadOnly();
+              openFullScreen();
             }
           }}
           onLoad={handleImageLoad}
