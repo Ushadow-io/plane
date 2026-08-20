@@ -1,0 +1,256 @@
+# Continuous deploy for the Plane fork -> the chakra-plexus namespace.
+#
+# Run from THIS directory (the fork checkout):
+#     skaffold run    # build changed images, push, helm upgrade
+#     skaffold dev    # same, re-run on every source change
+#     skaffold build  # images only, no deploy
+#     skaffold delete # helm uninstall
+#
+# Replicates `make plexus-plane-redeploy` (chakra-plexus/Makefile:586) as a
+# watch loop. The Makefile targets are NOT superseded -- they still own
+# everything skaffold does not: one-time provisioning
+# (plexus-plane-create-db/-vhost/-minio-user), rollback (plexus-plane-rollback)
+# and config re-seeding (plexus-plane-reseed-ai/-email).
+#
+# Two paths reach outside this repo, both relative to this file:
+#   ../charts/plane   the helm chart
+#   ../..             the chakra repo root, for the secret-sync hook
+# Set CHAKRA_ROOT if you ever run skaffold from somewhere else.
+
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: plane
+
+build:
+  # ── WHY anubis:32000 AND NOT ra:32000 ────────────────────────────────────
+  # Both names are the SAME Zot registry (NodePort 32000; verified byte
+  # identical /v2/_catalog). ra:32000 is the canonical name and is what the
+  # chart pulls -- in-cluster pulls go through containerd, which is configured
+  # separately and handles it fine.
+  #
+  # PUSHES are the problem. The registry speaks plain HTTP, so every client
+  # that pushes to it needs an explicit insecure entry, and right now ra:32000
+  # is missing from both of them:
+  #
+  #   chakra-builder (buildx)  baked config lists ONLY anubis:32000. buildx
+  #                            snapshots buildkitd.toml at CREATE time, and
+  #                            the shared chakra-root/postgres/buildkitd.toml
+  #                            grew its ra:32000 entry afterwards.
+  #   the Docker daemon        insecure-registries has anubis:32000,
+  #                            anubis:5000, babel:32000, 192.168.1.42:32000 --
+  #                            no ra:32000.
+  #
+  # Pushing to ra:32000 therefore fails on BOTH paths with
+  #   "http: server gave HTTP response to HTTPS client"
+  # which arrives after a successful build and reads like a registry outage.
+  #
+  # To switch this to ra:32000, fix the pushers first:
+  #   docker buildx rm chakra-builder
+  #   docker buildx create --name chakra-builder --driver docker-container \
+  #     --config ../../chakra-root/postgres/buildkitd.toml
+  #   (and add ra:32000 to Docker's insecure-registries for `make`'s
+  #    plain `docker push` path)
+  # Recreating the builder discards its layer cache, so the next web build is
+  # a cold one. Then change the three image: lines below AND
+  # components.*.image in ../charts/plane/values.yaml together.
+  #
+  # NOTE: the Makefile pushes via registry.spangled-kettle.ts.net instead --
+  # HTTPS, so it needs no insecure entry at all. That host is a Tailscale name
+  # and dies whenever the tailnet is down, which is what broke
+  # `make plexus-plane-push` with "Bad Gateway". This path is LAN-only and has
+  # no such dependency.
+  insecureRegistries:
+    - anubis:32000
+
+  # Reproduces the Makefile's PLANE_IMAGE_TAG = fork-<sha>. Immutable and
+  # traceable, and -- critically -- it CHANGES on every commit. A moving tag
+  # plus the chart's pullPolicy: IfNotPresent means helm upgrade rolls nothing
+  # after a push and you keep serving the old code with no visible error.
+  #
+  # On a clean tree this emits the SAME string as `make plexus-plane-build`
+  # (verified: fork-4f8bfd30f1 from both). AbbrevCommitSha defers to git's own
+  # abbreviation length, which is currently 10 here, matching --short=10. Git
+  # grows that as the object count grows, so the two could drift later --
+  # harmless, since both still name the same commit and still match the
+  # `fork-[0-9a-f]+` shape plexus-plane-stamp-tag greps for. Worst case is one
+  # no-op pod roll when switching between the two paths.
+  #
+  # One deliberate difference: a dirty tree gets a `-dirty` suffix rather than
+  # the hard failure plexus-plane-check-clean raises. That is what makes
+  # `skaffold dev` usable at all, and the suffix is what stops an
+  # unreproducible build from ever masquerading as a real commit in-cluster.
+  #
+  # Dirtiness is judged PER ARTIFACT, against that artifact's context dir -- so
+  # an uncommitted file at the repo root tags frontend/admin `-dirty` while the
+  # backend (context apps/api) stays clean, and the three tags stop matching.
+  # This file being untracked is enough to trigger it; commit it and they line
+  # up again.
+  tagPolicy:
+    gitCommit:
+      variant: AbbrevCommitSha
+      prefix: fork-
+
+  artifacts:
+    # Only the three FORKED images are built here. space/live/proxy are
+    # untouched upstream makeplane/* images the chart pins directly.
+    #
+    # Every cluster node is amd64 and this normally runs on an arm64 Mac, so
+    # --platform linux/amd64 is load-bearing on all three. Without it you get
+    # an arm64 image that pushes fine and then CrashLoopBackOffs with "exec
+    # format error" -- which reads like an application fault, not a build one.
+    #
+    # `custom` rather than `docker` because these need the dedicated
+    # chakra-builder buildx builder; skaffold's built-in docker builder drives
+    # the default daemon and cannot target a named builder.
+    - image: anubis:32000/plane-backend
+      context: apps/api
+      custom:
+        buildCommand: |
+          docker buildx build \
+            --builder "${PLANE_BUILDER:-chakra-builder}" \
+            --platform linux/amd64 \
+            --push \
+            -f "$BUILD_CONTEXT/Dockerfile.api" \
+            -t "$IMAGE" \
+            "$BUILD_CONTEXT"
+        dependencies:
+          paths:
+            - "**"
+          ignore:
+            - "**/__pycache__/**"
+            - "**/*.pyc"
+
+    # web and admin build from the REPO ROOT, not their own app dir: both
+    # Dockerfiles run pnpm install against the workspace and need packages/*
+    # plus the lockfile in context.
+    - image: anubis:32000/plane-frontend
+      context: .
+      custom:
+        buildCommand: |
+          docker buildx build \
+            --builder "${PLANE_BUILDER:-chakra-builder}" \
+            --platform linux/amd64 \
+            --push \
+            -f "$BUILD_CONTEXT/apps/web/Dockerfile.web" \
+            -t "$IMAGE" \
+            "$BUILD_CONTEXT"
+        # Enumerated rather than "**": the context is a pnpm monorepo and a
+        # bare glob makes `skaffold dev` walk node_modules/.next/.git on every
+        # keystroke. These are the paths that actually change the web image.
+        dependencies:
+          paths:
+            - apps/web/**
+            - packages/**
+            - package.json
+            - pnpm-lock.yaml
+            - pnpm-workspace.yaml
+            - turbo.json
+          ignore:
+            - "**/node_modules/**"
+            - "**/.next/**"
+            - "**/.turbo/**"
+            - "**/dist/**"
+
+    - image: anubis:32000/plane-admin
+      context: .
+      custom:
+        buildCommand: |
+          docker buildx build \
+            --builder "${PLANE_BUILDER:-chakra-builder}" \
+            --platform linux/amd64 \
+            --push \
+            -f "$BUILD_CONTEXT/apps/admin/Dockerfile.admin" \
+            -t "$IMAGE" \
+            "$BUILD_CONTEXT"
+        dependencies:
+          paths:
+            - apps/admin/**
+            - packages/**
+            - package.json
+            - pnpm-lock.yaml
+            - pnpm-workspace.yaml
+            - turbo.json
+          ignore:
+            - "**/node_modules/**"
+            - "**/.next/**"
+            - "**/.turbo/**"
+            - "**/dist/**"
+
+deploy:
+  # Pinned so a stray `kubectl config use-context psyclo-aks` cannot send a
+  # plane deploy to the Azure cluster. Skaffold refuses to run when this
+  # context is missing rather than silently falling back to the current one.
+  #
+  # !! This context's server is the TAILSCALE address (100.116.46.25:16443) !!
+  # When the tailnet is down every deploy dies with an i/o timeout to that IP,
+  # even though the cluster is reachable on the LAN at 192.168.1.42:16443 with
+  # the very same certs. `tailscale up` is the real fix; the stopgap is
+  #   kubectl config view --raw --minify --context microk8s > /tmp/kc.yaml
+  #   sed -i '' 's|100.116.46.25|192.168.1.42|' /tmp/kc.yaml
+  #   KUBECONFIG=/tmp/kc.yaml skaffold run
+  kubeContext: microk8s
+
+  helm:
+    hooks:
+      before:
+        # Mirrors plexus-deploy-plane (Makefile:672), which syncs plane-secrets
+        # from .env-prod BEFORE every helm upgrade. Skipping it lets skaffold
+        # and make drift apart.
+        #
+        # The target also runs plexus-plane-check-env-collisions, the guard
+        # that stops a leftover PLANE_* key in .env-prod from silently
+        # shadowing a chart config key -- envFrom order means the Secret wins,
+        # so the chart value is ignored with no visible error. That is the bug
+        # that broke every upload on 2026-08-15 (PLANE_USE_MINIO=0 overriding
+        # the chart's USE_MINIO=1).
+        #
+        # `dir` on a host hook resolves against the CALLING PROCESS's cwd, not
+        # this file's location -- hence the "run from the fork root" rule, with
+        # CHAKRA_ROOT as the escape hatch.
+        - host:
+            command:
+              - sh
+              - -c
+              - 'cd "${CHAKRA_ROOT:-../..}" && make plexus-sync-plane-secrets'
+            os: [darwin, linux]
+
+    releases:
+      - name: plane
+        chartPath: ../charts/plane
+        namespace: chakra-plexus
+        createNamespace: true
+        # --wait, matching the Makefile. Also makes `skaffold dev` block until
+        # the migrator pre-upgrade hook Job has finished, so a failed migration
+        # surfaces here rather than as a crashlooping api pod two minutes on.
+        wait: true
+        upgradeOnChange: true
+
+        # !! TAG ONLY -- THE PULL REPO STAYS IN values.yaml !!
+        # Skaffold normally rewrites the whole image reference, but this chart
+        # splits image and tag across separate keys (components.<c>.image +
+        # components.<c>.tag, see ../charts/plane/templates/*-deployment.yaml),
+        # so only the tag half is templated here.
+        #
+        # That split is what lets the push name (anubis:32000, above) differ
+        # from the pull name (ra:32000, in values.yaml) while still pointing at
+        # one registry. If you ever unify them, change BOTH files together.
+        #
+        # api, worker and beatWorker are the SAME backend image running three
+        # different commands, and the migrator Job reuses components.api.tag.
+        # All four therefore move together -- a worker on older code than the
+        # migration that just ran is exactly the split-brain this avoids.
+        #
+        # Template var names are the image name with every non-alphanumeric
+        # character replaced by "_":
+        #   anubis:32000/plane-backend -> IMAGE_TAG_anubis_32000_plane_backend
+        setValueTemplates:
+          components.api.tag: "{{.IMAGE_TAG_anubis_32000_plane_backend}}"
+          components.worker.tag: "{{.IMAGE_TAG_anubis_32000_plane_backend}}"
+          components.beatWorker.tag: "{{.IMAGE_TAG_anubis_32000_plane_backend}}"
+          components.web.tag: "{{.IMAGE_TAG_anubis_32000_plane_frontend}}"
+          components.admin.tag: "{{.IMAGE_TAG_anubis_32000_plane_admin}}"
+
+  # 5m, matching the Makefile's helm --timeout. The frontend rollout plus the
+  # migrator hook can genuinely take a few minutes on a cold node.
+  statusCheckDeadlineSeconds: 300
