@@ -29,10 +29,12 @@ export const ReleaseListItem = observer(function ReleaseListItem(props: Props) {
           <div className="flex items-center gap-2">
             <span className="truncate text-14 font-medium text-primary">{release.name}</span>
             {release.is_latest && (
-              <span className="bg-primary/10 shrink-0 rounded px-1.5 py-0.5 text-11 text-primary">Latest</span>
+              <span className="shrink-0 rounded bg-accent-primary/10 px-1.5 py-0.5 text-11 text-accent-primary">
+                Latest
+              </span>
             )}
             {release.is_prerelease && (
-              <span className="shrink-0 rounded bg-layer-2 px-1.5 py-0.5 text-11 text-tertiary">Pre-release</span>
+              <span className="shrink-0 rounded bg-layer-3 px-1.5 py-0.5 text-11 text-tertiary">Pre-release</span>
             )}
           </div>
           {release.tag_detail?.version && (

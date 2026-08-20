@@ -4,13 +4,24 @@
  * See the LICENSE file for details.
  */
 
-import type { IRelease } from "@plane/types";
+import type { IRelease, TReleaseStatus } from "@plane/types";
 import { cn } from "@plane/utils";
 
 type Props = {
   release: IRelease;
   showCounts?: boolean;
   className?: string;
+};
+
+/**
+ * Fill colour for the completed segment, keyed off release status so a shipped
+ * release reads differently from one still in flight at a glance. Accent (in
+ * flight) vs success (shipped) vs muted (abandoned).
+ */
+const COMPLETED_FILL_CLASS: Record<TReleaseStatus, string> = {
+  unreleased: "bg-accent-primary",
+  released: "bg-success-primary",
+  cancelled: "bg-layer-disabled",
 };
 
 /**
@@ -31,11 +42,14 @@ export function ReleaseProgress(props: Props) {
   const completedPercent = total ? (completed / total) * 100 : 0;
   const cancelledPercent = total ? (cancelled / total) * 100 : 0;
 
+  const completedFillClass = COMPLETED_FILL_CLASS[release.status] ?? COMPLETED_FILL_CLASS.unreleased;
+
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-layer-2">
-        <div className="bg-success h-full transition-all" style={{ width: `${completedPercent}%` }} />
-        <div className="bg-tertiary/40 h-full transition-all" style={{ width: `${cancelledPercent}%` }} />
+      {/* Track is layer-3 rather than layer-2: layer-2 is pure white in the light theme. */}
+      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-layer-3">
+        <div className={cn("h-full transition-all", completedFillClass)} style={{ width: `${completedPercent}%` }} />
+        <div className="h-full bg-inverse/20 transition-all" style={{ width: `${cancelledPercent}%` }} />
       </div>
       {showCounts && (
         <div className="flex items-center gap-3 text-11 text-tertiary">

@@ -8,9 +8,9 @@ import type { TReleaseStatus } from "@plane/types";
 import { cn } from "@plane/utils";
 
 export const RELEASE_STATUS_DETAILS: Record<TReleaseStatus, { label: string; className: string }> = {
-  unreleased: { label: "Unreleased", className: "bg-layer-2 text-secondary" },
-  released: { label: "Released", className: "bg-success/10 text-success" },
-  cancelled: { label: "Cancelled", className: "bg-layer-2 text-tertiary" },
+  unreleased: { label: "Unreleased", className: "bg-accent-primary/10 text-accent-primary" },
+  released: { label: "Released", className: "bg-success-primary/15 text-success-primary" },
+  cancelled: { label: "Cancelled", className: "bg-layer-3 text-tertiary" },
 };
 
 export const RELEASE_STATUS_OPTIONS: TReleaseStatus[] = ["unreleased", "released", "cancelled"];

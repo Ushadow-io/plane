@@ -83,7 +83,7 @@ function ReleaseDetailPage() {
               <h1 className="truncate text-18 font-semibold text-primary">{release.name}</h1>
               <ReleaseStatusBadge status={release.status} />
               {release.is_latest && (
-                <span className="bg-primary/10 rounded px-1.5 py-0.5 text-11 text-primary">Latest</span>
+                <span className="rounded bg-accent-primary/10 px-1.5 py-0.5 text-11 text-accent-primary">Latest</span>
               )}
             </div>
           </div>
@@ -109,7 +109,7 @@ function ReleaseDetailPage() {
               onClick={() => setActiveTab(tab)}
               className={`-mb-px border-b-2 px-3 py-2 text-13 transition-colors ${
                 activeTab === tab
-                  ? "border-primary font-medium text-primary"
+                  ? "border-accent-strong font-medium text-primary"
                   : "border-transparent text-tertiary hover:text-secondary"
               }`}
             >

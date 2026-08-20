@@ -215,21 +215,33 @@ class OIDCProvider(OauthAdapter):
         """
         Map OIDC name claims onto Plane's first_name / last_name pair.
 
-        Prefers the structured claims; falls back to splitting the display
-        name, then to preferred_username, so a minimal IdP still yields
-        something readable rather than a blank profile.
+        Casdoor serves userinfo in one of two shapes depending on the
+        application's subType: the standard-claims shape (name = display name,
+        preferred_username = username) or its native shape (displayName =
+        display name, name = username). "name" therefore means different
+        things in each, so the unambiguous "displayName" is consulted first
+        and bare "name" only after it.
         """
         given = (user_info_response.get("given_name") or "").strip()
         family = (user_info_response.get("family_name") or "").strip()
         if given or family:
             return given, family
 
-        display = (user_info_response.get("name") or "").strip()
+        display = (user_info_response.get("displayName") or user_info_response.get("name") or "").strip()
         if display:
             first, _, last = display.partition(" ")
             return first, last.strip()
 
         return (user_info_response.get("preferred_username") or "").strip(), ""
+
+    @staticmethod
+    def __get_avatar(user_info_response):
+        """Standard "picture" claim, falling back to Casdoor's native fields."""
+        for key in ("picture", "avatar", "permanentAvatar"):
+            value = (user_info_response.get(key) or "").strip()
+            if value:
+                return value
+        return None
 
     def resolve_verified_email(self, user_info_response):
         """
@@ -238,9 +250,17 @@ class OIDCProvider(OauthAdapter):
         Returns the email to bind the Plane account to, or raises
         AuthenticationException if none may be trusted.
 
-        TODO(stu): choose the policy - see the note in the conversation.
-        The strict default below matches the Gitea provider's post-
-        GHSA-7j95-vh8g-f365 behaviour.
+        Policy: require email_verified, matching the Gitea provider's
+        post-GHSA-7j95-vh8g-f365 behaviour. Plane matches an OAuth identity to
+        an existing account by address, so trusting an unverified claim would
+        let anyone who can assert an address take over that account.
+
+        Note for Casdoor operators: Casdoor hardcodes email_verified to true in
+        its userinfo response (object/user.go - the line reading the real user
+        field is commented out), so this check always passes there and provides
+        no protection on its own. Control who may sign up in Casdoor instead.
+        The check is still worth keeping: IdPs that honour the flag - Keycloak,
+        Authentik, Auth0 - get the protection, and it costs Casdoor nothing.
         """
         email = (user_info_response.get("email") or "").strip().lower()
         if not email:
@@ -282,7 +302,7 @@ class OIDCProvider(OauthAdapter):
                 "user": {
                     "provider_id": str(subject),
                     "email": email,
-                    "avatar": user_info_response.get("picture"),
+                    "avatar": self.__get_avatar(user_info_response),
                     "first_name": first_name,
                     "last_name": last_name,
                     "is_password_autoset": True,
