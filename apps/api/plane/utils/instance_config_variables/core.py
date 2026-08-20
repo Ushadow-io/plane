@@ -162,6 +162,55 @@ gitea_config_variables = [
     },
 ]
 
+oidc_config_variables = [
+    {
+        "key": "IS_OIDC_ENABLED",
+        "value": os.environ.get("IS_OIDC_ENABLED", "0"),
+        "category": "OIDC",
+        "is_encrypted": False,
+    },
+    {
+        "key": "OIDC_ISSUER",
+        "value": os.environ.get("OIDC_ISSUER"),
+        "category": "OIDC",
+        "is_encrypted": False,
+    },
+    {
+        "key": "OIDC_CLIENT_ID",
+        "value": os.environ.get("OIDC_CLIENT_ID"),
+        "category": "OIDC",
+        "is_encrypted": False,
+    },
+    {
+        "key": "OIDC_CLIENT_SECRET",
+        "value": os.environ.get("OIDC_CLIENT_SECRET"),
+        "category": "OIDC",
+        "is_encrypted": True,
+    },
+    {
+        # Label rendered on the sign-in button, e.g. "Chakra SSO". Kept as
+        # config rather than a hardcoded string because a generic provider has
+        # no brand of its own - the operator names their own IdP.
+        "key": "OIDC_DISPLAY_NAME",
+        "value": os.environ.get("OIDC_DISPLAY_NAME", "Single sign-on"),
+        "category": "OIDC",
+        "is_encrypted": False,
+    },
+    {
+        # Extra scopes appended to the mandatory "openid email profile".
+        "key": "OIDC_ADDITIONAL_SCOPES",
+        "value": os.environ.get("OIDC_ADDITIONAL_SCOPES", ""),
+        "category": "OIDC",
+        "is_encrypted": False,
+    },
+    {
+        "key": "ENABLE_OIDC_SYNC",
+        "value": os.environ.get("ENABLE_OIDC_SYNC", "0"),
+        "category": "OIDC",
+        "is_encrypted": False,
+    },
+]
+
 smtp_config_variables = [
     {
         "key": "ENABLE_SMTP",
@@ -283,6 +332,7 @@ core_config_variables = [
     *github_config_variables,
     *gitlab_config_variables,
     *gitea_config_variables,
+    *oidc_config_variables,
     *smtp_config_variables,
     *llm_config_variables,
     *unsplash_config_variables,

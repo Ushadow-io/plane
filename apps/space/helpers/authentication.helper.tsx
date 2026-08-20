@@ -62,6 +62,8 @@ export enum EAuthenticationErrorCodes {
   GOOGLE_NOT_CONFIGURED = "5105",
   GITHUB_NOT_CONFIGURED = "5110",
   GITLAB_NOT_CONFIGURED = "5111",
+  OIDC_NOT_CONFIGURED = "5113",
+  OIDC_OAUTH_PROVIDER_ERROR = "5114",
   GOOGLE_OAUTH_PROVIDER_ERROR = "5115",
   GITHUB_OAUTH_PROVIDER_ERROR = "5120",
   GITLAB_OAUTH_PROVIDER_ERROR = "5121",
@@ -261,6 +263,14 @@ const errorCodeMessages: {
     title: `GitLab OAuth provider error`,
     message: () => `GitLab OAuth provider error. Please try again.`,
   },
+  [EAuthenticationErrorCodes.OIDC_NOT_CONFIGURED]: {
+    title: `OpenID Connect not configured`,
+    message: () => `OpenID Connect not configured. Please contact your administrator.`,
+  },
+  [EAuthenticationErrorCodes.OIDC_OAUTH_PROVIDER_ERROR]: {
+    title: `OpenID Connect provider error`,
+    message: () => `OpenID Connect provider error. Please try again.`,
+  },
 
   // Reset Password
   [EAuthenticationErrorCodes.INVALID_PASSWORD_TOKEN]: {
@@ -376,6 +386,8 @@ export const authErrorHandler = (errorCode: EAuthenticationErrorCodes, email?: s
     EAuthenticationErrorCodes.GOOGLE_OAUTH_PROVIDER_ERROR,
     EAuthenticationErrorCodes.GITHUB_OAUTH_PROVIDER_ERROR,
     EAuthenticationErrorCodes.GITLAB_OAUTH_PROVIDER_ERROR,
+    EAuthenticationErrorCodes.OIDC_NOT_CONFIGURED,
+    EAuthenticationErrorCodes.OIDC_OAUTH_PROVIDER_ERROR,
     EAuthenticationErrorCodes.INVALID_PASSWORD_TOKEN,
     EAuthenticationErrorCodes.EXPIRED_PASSWORD_TOKEN,
     EAuthenticationErrorCodes.INCORRECT_OLD_PASSWORD,
