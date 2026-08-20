@@ -211,12 +211,16 @@ export function PageRenderer(props: Props) {
                 />
                 {isAIMenuOpen && aiHandler?.menu && (
                   <FloatingPortal>
+                    {/* 9999, not the editor floating-menu tier (100) every sibling here
+                        (slash commands, mentions, block-menu, table drag handles, ...) uses --
+                        the AI response should win if one of those is somehow still mounted
+                        underneath it, not stack as just another peer at the same level. */}
                     <div
                       ref={(node) => {
                         aiRefs.setFloating(node);
                         aiMenuRef.current = node;
                       }}
-                      style={{ ...aiFloatingStyles, zIndex: 100 }}
+                      style={{ ...aiFloatingStyles, zIndex: 9999 }}
                       {...getAIFloatingProps()}
                     >
                       {aiHandler.menu({ isOpen: isAIMenuOpen, onClose: () => setIsAIMenuOpen(false) })}

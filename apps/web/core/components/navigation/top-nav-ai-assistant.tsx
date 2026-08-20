@@ -35,7 +35,16 @@ export function TopNavAIAssistant() {
           </div>
         </Popover.Button>
       </Tooltip>
-      <Popover.Panel side="bottom" align="end" className="border-none bg-transparent p-0 shadow-none">
+      {/* z-[9999] on the positioner: PopoverPositioner (root.tsx) is what's actually
+          position-fixed, and this had no z-index at all -- it stacked at the
+          implicit z-index:0 of whatever DOM position it portalled to, so a
+          later-mounted overlay with any explicit z-index could render over it. */}
+      <Popover.Panel
+        side="bottom"
+        align="end"
+        className="border-none bg-transparent p-0 shadow-none"
+        positionerClassName="z-[9999]"
+      >
         <EditorAIMenu
           editorRef={null}
           isOpen={isOpen}
