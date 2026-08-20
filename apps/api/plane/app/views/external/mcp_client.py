@@ -26,6 +26,37 @@ class PlaneMCPError(Exception):
     """A tool call reached the server but failed, or the transport misbehaved."""
 
 
+# plane-mcp-server's tool catalogue targets Plane's current cloud/commercial API
+# surface via plane-sdk. This CE fork's public v1 API (apps/api/plane/api/urls/)
+# doesn't implement everything that surface has -- these tools 404 on every
+# action, for every project, unconditionally (verified against
+# apps/api/plane/api/urls/*.py: no url module for customers, initiatives,
+# milestones, pages, issue types/properties, or work logs in the public API,
+# only in the internal app/ API the web frontend uses).
+#
+# Offering a tool the model can never successfully call isn't harmless: it
+# wastes tool-call rounds discovering the 404, and worse, the model sometimes
+# folds that failure into an unrelated success -- e.g. it created a work item
+# fine, then tried to resolve/set an issue TYPE on it via workitem_type,
+# 404'd, and reported the whole request had failed on "permissions" even
+# though the item existed. Filtering these out at the source is simpler and
+# more reliable than trying to prompt the model out of using them.
+UNSUPPORTED_TOOLS = frozenset(
+    {
+        "customer",
+        "customer_property",
+        "customer_request",
+        "initiative",
+        "milestone",
+        "page",
+        "workitem_type",
+        "workitem_property",
+        "work_log",
+        "release_label",
+    }
+)
+
+
 class PlaneMCPClient:
     def __init__(self, base_url: str, token: str, workspace_slug: str, timeout: int = 20):
         self.base_url = base_url
@@ -61,7 +92,8 @@ class PlaneMCPClient:
         return response.json()
 
     def list_tools(self) -> list[dict]:
-        return self._call("tools/list").get("tools", [])
+        tools = self._call("tools/list").get("tools", [])
+        return [t for t in tools if t.get("name") not in UNSUPPORTED_TOOLS]
 
     def call_tool(self, name: str, arguments: dict) -> str:
         """Returns the tool's text content, or raises PlaneMCPError if the

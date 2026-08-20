@@ -69,7 +69,12 @@ export function EditorAIMenu(props: Props) {
   }, [isOpen]);
 
   return (
-    <div className="flex w-[360px] flex-col rounded-md border-[0.5px] border-strong bg-surface-1 shadow-raised-200 transition-all">
+    // 440px (was 360px) and a viewport-relative max-height: at 360px, a
+    // several-paragraph response wrapped so tightly it read as cut off, and
+    // with no bound here the panel could grow past the popover's collision
+    // boundary and get clipped outright instead of scrolling (the response
+    // area handles its own overflow-y-auto -- see ask-pi-menu.tsx).
+    <div className="flex max-h-[70vh] w-[440px] flex-col overflow-hidden rounded-md border-[0.5px] border-strong bg-surface-1 shadow-raised-200 transition-all">
       <AskPiMenu
         handleInsertText={handleInsertText}
         isSubmitting={isSubmitting}

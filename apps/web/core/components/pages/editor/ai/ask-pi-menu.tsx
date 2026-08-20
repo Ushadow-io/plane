@@ -43,14 +43,19 @@ export function AskPiMenu(props: Props) {
     <>
       <div
         className={cn("flex items-center gap-3 px-4 py-3.5", {
-          "items-start": response,
+          // min-h-0 undoes flexbox's default min-height:auto, which otherwise
+          // stops this child from shrinking below its content size inside
+          // menu.tsx's max-h-[70vh] column flex -- without it overflow-y-auto
+          // never actually engages and long responses just get clipped at the
+          // popover's viewport-collision boundary instead of scrolling.
+          "min-h-0 flex-1 items-start overflow-y-auto": response,
         })}
       >
         <span className="grid size-7 flex-shrink-0 place-items-center rounded-full border border-subtle text-secondary">
           <Sparkles className="size-3" />
         </span>
         {response ? (
-          <div>
+          <div className="min-w-0 flex-1">
             <RichTextEditor
               editable={false}
               displayConfig={{
