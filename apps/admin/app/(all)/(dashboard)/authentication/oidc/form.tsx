@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { isEmpty } from "lodash-es";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 // plane internal packages
 import { API_BASE_URL } from "@plane/constants";
 import { Button, getButtonStyling } from "@plane/propel/button";
@@ -55,6 +55,7 @@ export function InstanceOIDCConfigForm(props: Props) {
       OIDC_CLIENT_SECRET: config["OIDC_CLIENT_SECRET"],
       OIDC_DISPLAY_NAME: config["OIDC_DISPLAY_NAME"] || "Single sign-on",
       OIDC_ADDITIONAL_SCOPES: config["OIDC_ADDITIONAL_SCOPES"] || "",
+      OIDC_CALLBACK_HOSTS: config["OIDC_CALLBACK_HOSTS"] || "",
       ENABLE_OIDC_SYNC: config["ENABLE_OIDC_SYNC"] || "0",
     },
   });
@@ -123,21 +124,52 @@ export function InstanceOIDCConfigForm(props: Props) {
       error: Boolean(errors.OIDC_ADDITIONAL_SCOPES),
       required: false,
     },
-  ];
-
-  const OIDC_SERVICE_FIELD: TCopyField[] = [
     {
-      key: "Callback_URI",
-      label: "Callback URI",
-      url: `${originURL}/auth/oidc/callback/`,
+      key: "OIDC_CALLBACK_HOSTS",
+      type: "text",
+      label: "Additional origins",
       description: (
         <>
-          We will auto-generate this. Paste it into the <CodeBlock darkerShade>Redirect URI</CodeBlock> list of the
-          application you registered with your identity provider.
+          Optional. Every origin Plane is reachable on, comma or space separated. Plane derives the callback URI from
+          the host of each request, so a user signing in via a second hostname sends a different{" "}
+          <CodeBlock darkerShade>redirect_uri</CodeBlock> &mdash; and your provider rejects it unless that exact URI is
+          registered. List the origins here and every URI to register appears on the right.
         </>
       ),
+      placeholder: "https://plane.example.com https://plane.internal.example",
+      error: Boolean(errors.OIDC_CALLBACK_HOSTS),
+      required: false,
     },
   ];
+
+  // Watched rather than read off control._formValues so the URI list below
+  // updates as the admin types, instead of only after a save.
+  const callbackHosts = useWatch({ control, name: "OIDC_CALLBACK_HOSTS" });
+
+  // The instance's own origin always needs registering; anything the admin
+  // lists is added to it. Trailing slashes are trimmed so the same origin
+  // written two ways does not produce two entries.
+  const callbackOrigins = Array.from(
+    new Set(
+      [originURL, ...(callbackHosts || "").split(/[\s,]+/)]
+        .map((origin) => origin.trim().replace(/\/+$/, ""))
+        .filter((origin) => /^https?:\/\//.test(origin))
+    )
+  );
+
+  const OIDC_SERVICE_FIELD: TCopyField[] = callbackOrigins.map((origin, index) => ({
+    key: `Callback_URI_${origin}`,
+    label: callbackOrigins.length > 1 ? `Callback URI ${index + 1}` : "Callback URI",
+    url: `${origin}/auth/oidc/callback/`,
+    description:
+      index === 0 ? (
+        <>
+          We will auto-generate these. Paste <em>every</em> one into the <CodeBlock darkerShade>Redirect URI</CodeBlock>{" "}
+          list of the application you registered with your identity provider &mdash; a sign-in from an origin that is
+          not registered is rejected before the login page renders.
+        </>
+      ) : undefined,
+  }));
 
   const onSubmit = async (formData: OIDCConfigFormValues) => {
     const payload: Partial<OIDCConfigFormValues> = { ...formData };
@@ -155,6 +187,7 @@ export function InstanceOIDCConfigForm(props: Props) {
         OIDC_CLIENT_SECRET: response.find((item) => item.key === "OIDC_CLIENT_SECRET")?.value,
         OIDC_DISPLAY_NAME: response.find((item) => item.key === "OIDC_DISPLAY_NAME")?.value,
         OIDC_ADDITIONAL_SCOPES: response.find((item) => item.key === "OIDC_ADDITIONAL_SCOPES")?.value,
+        OIDC_CALLBACK_HOSTS: response.find((item) => item.key === "OIDC_CALLBACK_HOSTS")?.value,
         ENABLE_OIDC_SYNC: response.find((item) => item.key === "ENABLE_OIDC_SYNC")?.value,
       });
     } catch (err) {

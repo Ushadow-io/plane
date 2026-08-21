@@ -64,6 +64,7 @@ export type TInstanceOIDCAuthenticationConfigurationKeys =
   | "OIDC_CLIENT_SECRET"
   | "OIDC_DISPLAY_NAME"
   | "OIDC_ADDITIONAL_SCOPES"
+  | "OIDC_CALLBACK_HOSTS"
   | "ENABLE_OIDC_SYNC";
 
 export type TInstanceAuthenticationConfigurationKeys =

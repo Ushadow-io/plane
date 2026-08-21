@@ -204,6 +204,17 @@ oidc_config_variables = [
         "is_encrypted": False,
     },
     {
+        # Extra origins Plane is served from, comma or space separated, e.g.
+        # "https://plane.ushadow.io https://plane.psyclopedia.com". Purely a
+        # God Mode display aid: the callback URI is always derived from the
+        # request host at runtime, so any origin already works. This just makes
+        # the admin page list every URI that needs registering with the IdP.
+        "key": "OIDC_CALLBACK_HOSTS",
+        "value": os.environ.get("OIDC_CALLBACK_HOSTS", ""),
+        "category": "OIDC",
+        "is_encrypted": False,
+    },
+    {
         "key": "ENABLE_OIDC_SYNC",
         "value": os.environ.get("ENABLE_OIDC_SYNC", "0"),
         "category": "OIDC",
