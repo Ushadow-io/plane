@@ -254,3 +254,29 @@ deploy:
   # 5m, matching the Makefile's helm --timeout. The frontend rollout plus the
   # migrator hook can genuinely take a few minutes on a cold node.
   statusCheckDeadlineSeconds: 300
+
+profiles:
+  # `skaffold dev` only. The top-level tagPolicy (gitCommit/AbbrevCommitSha)
+  # is great for `run`/`build` -- traceable, immutable, matches what the
+  # Makefile stamps -- but it is BROKEN for an interactive dev loop: the tag
+  # only changes when the git commit changes, so a dirty working tree just
+  # gets a flat "-dirty" suffix with no content hash. Every save between
+  # commits therefore rebuilds and pushes under the SAME tag string, and with
+  # the chart's pullPolicy: IfNotPresent (../charts/plane/values.yaml:22)
+  # nothing repulls and no pod rolls -- skaffold looks like it's working and
+  # nothing changes in the browser.
+  #
+  # dateTime stamps a fresh tag on every single build regardless of git
+  # state, so IfNotPresent always sees a new tag and always pulls. It costs a
+  # real rollout even for a no-op save, which is the right trade for a fast
+  # inner loop.
+  - name: fast-dev
+    activation:
+      - command: dev
+    patches:
+      - op: replace
+        path: /build/tagPolicy
+        value:
+          dateTime:
+            format: "2006-01-02_15-04-05.000"
+            timezone: Local

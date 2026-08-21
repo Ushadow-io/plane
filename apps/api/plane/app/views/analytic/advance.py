@@ -155,6 +155,26 @@ class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
             .order_by("project_id")
         )
 
+    def get_team_stats(self) -> List[Dict[str, Any]]:
+        base_queryset = Issue.issue_objects.filter(**self.filters["base_filters"])
+        members = WorkspaceMember.objects.filter(
+            workspace__slug=self._workspace_slug, is_active=True, member__is_bot=False
+        ).select_related("member")
+
+        return [
+            {
+                "member_id": str(workspace_member.member_id),
+                "display_name": workspace_member.member.display_name,
+                "avatar_url": workspace_member.member.avatar_url,
+                "work_items_logged": base_queryset.filter(created_by=workspace_member.member_id).count(),
+                "work_items_closed": base_queryset.filter(
+                    assignees=workspace_member.member_id, state__group="completed"
+                ).count(),
+                "last_login_time": workspace_member.member.last_login_time,
+            }
+            for workspace_member in members
+        ]
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="chart")
@@ -163,6 +183,12 @@ class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
         if type == "work-items":
             return Response(
                 self.get_work_items_stats(),
+                status=status.HTTP_200_OK,
+            )
+
+        elif type == "team":
+            return Response(
+                self.get_team_stats(),
                 status=status.HTTP_200_OK,
             )
 

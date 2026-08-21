@@ -193,6 +193,22 @@ export class UserService extends APIService {
       });
   }
 
+  async getWorkspaceActivity(
+    workspaceSlug: string,
+    params: {
+      per_page: number;
+      cursor?: string;
+    }
+  ): Promise<IUserActivityResponse> {
+    return this.get(`/api/workspaces/${workspaceSlug}/analytics/activity/`, {
+      params,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async downloadProfileActivity(
     workspaceSlug: string,
     userId: string,

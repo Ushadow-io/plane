@@ -5,8 +5,9 @@
  */
 
 // components
+import { useEffect, useRef } from "react";
 import { observer } from "mobx-react";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { cn } from "@plane/utils";
 import { TopNavPowerK } from "@/components/navigation";
 import { HelpMenuRoot } from "@/components/workspace/sidebar/help-section/root";
@@ -26,12 +27,23 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
+  const router = useRouter();
 
   // store hooks
   const { unreadNotificationsCount, getUnreadNotificationsCount } = useWorkspaceNotifications();
   const { preferences } = useAppRailPreferences();
 
   const showLabel = preferences.displayMode === "icon_with_label";
+
+  const isInboxActive = !!pathname?.includes("/notifications/");
+
+  // Remember the last non-inbox route so a second click on Inbox can collapse back to it.
+  const lastNonInboxPathname = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isInboxActive && pathname) {
+      lastNonInboxPathname.current = pathname;
+    }
+  }, [pathname, isInboxActive]);
 
   // Fetch notification count
   useSWR(
@@ -62,11 +74,17 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
       {/* Additional Actions */}
       <div className="flex flex-1 shrink-0 items-center justify-end gap-1">
         <TopNavAIAssistant />
-        <Tooltip tooltipContent="Inbox" position="bottom">
+        <Tooltip tooltipContent={isInboxActive ? "Close inbox" : "Inbox"} position="bottom">
           <AppSidebarItem
-            variant="link"
+            variant="button"
             item={{
-              href: `/${workspaceSlug?.toString()}/notifications/`,
+              onClick: () => {
+                if (isInboxActive) {
+                  router.push(lastNonInboxPathname.current ?? `/${workspaceSlug?.toString()}`);
+                } else {
+                  router.push(`/${workspaceSlug?.toString()}/notifications/`);
+                }
+              },
               icon: (
                 <div className="relative">
                   <InboxIcon className="size-5" />
@@ -75,7 +93,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
                   )}
                 </div>
               ),
-              isActive: pathname?.includes("/notifications/"),
+              isActive: isInboxActive,
             }}
           />
         </Tooltip>

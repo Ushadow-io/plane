@@ -377,6 +377,38 @@ class WorkspaceUserProfileEndpoint(BaseAPIView):
         )
 
 
+class WorkspaceActivityEndpoint(BaseAPIView):
+    """Activity feed across every member of the workspace (unlike
+    WorkspaceUserActivityEndpoint below, which is scoped to a single actor)."""
+
+    permission_classes = [WorkspaceEntityPermission]
+
+    def get(self, request, slug):
+        projects = request.query_params.getlist("project", [])
+
+        queryset = IssueActivity.objects.filter(
+            ~Q(field__in=["comment", "vote", "reaction", "draft"]),
+            workspace__slug=slug,
+            project__project_projectmember__member=request.user,
+            project__project_projectmember__is_active=True,
+            project__archived_at__isnull=True,
+        ).select_related("actor", "workspace", "issue", "project")
+
+        if projects:
+            queryset = queryset.filter(project__in=projects)
+
+        return self.paginate(
+            order_by=sanitize_order_by(
+                request.GET.get("order_by", "-created_at"),
+                ACTIVITY_ORDER_BY_ALLOWLIST,
+                "-created_at",
+            ),
+            request=request,
+            queryset=queryset,
+            on_results=lambda issue_activities: IssueActivitySerializer(issue_activities, many=True).data,
+        )
+
+
 class WorkspaceUserActivityEndpoint(BaseAPIView):
     permission_classes = [WorkspaceEntityPermission]
 
