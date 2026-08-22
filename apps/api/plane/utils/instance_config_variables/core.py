@@ -215,6 +215,17 @@ oidc_config_variables = [
         "is_encrypted": False,
     },
     {
+        # JSON object mapping an OIDC group claim value to the workspaces it
+        # grants, e.g.
+        #   {"psyclo/admin": [{"workspace": "psyclopedia", "role": "ADMIN"}]}
+        # Group names rarely match workspace slugs, so this is an explicit map
+        # rather than an inferred naming convention. Empty disables group sync.
+        "key": "OIDC_GROUP_WORKSPACE_MAP",
+        "value": os.environ.get("OIDC_GROUP_WORKSPACE_MAP", ""),
+        "category": "OIDC",
+        "is_encrypted": False,
+    },
+    {
         "key": "ENABLE_OIDC_SYNC",
         "value": os.environ.get("ENABLE_OIDC_SYNC", "0"),
         "category": "OIDC",

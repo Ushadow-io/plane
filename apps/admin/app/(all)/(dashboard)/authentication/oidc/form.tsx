@@ -56,6 +56,7 @@ export function InstanceOIDCConfigForm(props: Props) {
       OIDC_DISPLAY_NAME: config["OIDC_DISPLAY_NAME"] || "Single sign-on",
       OIDC_ADDITIONAL_SCOPES: config["OIDC_ADDITIONAL_SCOPES"] || "",
       OIDC_CALLBACK_HOSTS: config["OIDC_CALLBACK_HOSTS"] || "",
+      OIDC_GROUP_WORKSPACE_MAP: config["OIDC_GROUP_WORKSPACE_MAP"] || "",
       ENABLE_OIDC_SYNC: config["ENABLE_OIDC_SYNC"] || "0",
     },
   });
@@ -140,6 +141,24 @@ export function InstanceOIDCConfigForm(props: Props) {
       error: Boolean(errors.OIDC_CALLBACK_HOSTS),
       required: false,
     },
+    {
+      key: "OIDC_GROUP_WORKSPACE_MAP",
+      type: "text",
+      label: "Group to workspace map",
+      description: (
+        <>
+          Optional JSON. Maps a group from your provider&apos;s <CodeBlock darkerShade>groups</CodeBlock> claim to the
+          workspaces it grants, so membership follows your identity provider instead of manual invites. Roles are{" "}
+          <CodeBlock darkerShade>ADMIN</CodeBlock>, <CodeBlock darkerShade>MEMBER</CodeBlock> or{" "}
+          <CodeBlock darkerShade>GUEST</CodeBlock>. A membership granted this way is withdrawn when the group is; ones
+          created through invites are never touched, and neither a workspace owner nor its last admin is ever removed.
+          Leave blank to disable.
+        </>
+      ),
+      placeholder: '{"group-name": [{"workspace": "your-workspace", "role": "MEMBER"}]}',
+      error: Boolean(errors.OIDC_GROUP_WORKSPACE_MAP),
+      required: false,
+    },
   ];
 
   // Watched rather than read off control._formValues so the URI list below
@@ -188,6 +207,7 @@ export function InstanceOIDCConfigForm(props: Props) {
         OIDC_DISPLAY_NAME: response.find((item) => item.key === "OIDC_DISPLAY_NAME")?.value,
         OIDC_ADDITIONAL_SCOPES: response.find((item) => item.key === "OIDC_ADDITIONAL_SCOPES")?.value,
         OIDC_CALLBACK_HOSTS: response.find((item) => item.key === "OIDC_CALLBACK_HOSTS")?.value,
+        OIDC_GROUP_WORKSPACE_MAP: response.find((item) => item.key === "OIDC_GROUP_WORKSPACE_MAP")?.value,
         ENABLE_OIDC_SYNC: response.find((item) => item.key === "ENABLE_OIDC_SYNC")?.value,
       });
     } catch (err) {

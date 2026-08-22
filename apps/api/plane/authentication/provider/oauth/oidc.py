@@ -38,6 +38,7 @@ from plane.authentication.adapter.error import (
     AuthenticationException,
 )
 from plane.authentication.adapter.oauth import OauthAdapter
+from plane.authentication.utils.oidc_group_sync import sync_oidc_workspace_groups
 from plane.license.utils.instance_value import get_configuration_value
 
 # Discovery runs inside __init__ *before* super().__init__() has attached
@@ -283,6 +284,13 @@ class OIDCProvider(OauthAdapter):
     def set_user_data(self):
         user_info_response = self.get_user_response()
 
+        # Stashed on the instance because the shared post-auth callback is only
+        # handed (user, is_signup, request) and never sees the raw claims.
+        # Casdoor returns this whenever the profile scope is granted and the
+        # application sets no TokenFields whitelist.
+        groups = user_info_response.get("groups")
+        self.oidc_groups = [g for g in groups if isinstance(g, str)] if isinstance(groups, list) else []
+
         # "sub" is the only claim OIDC guarantees is stable and unique per
         # issuer. Email can be reassigned by an admin, so the account link is
         # keyed on sub, never on the address.
@@ -309,3 +317,15 @@ class OIDCProvider(OauthAdapter):
                 },
             }
         )
+
+    def complete_login_or_signup(self):
+        """
+        Run the shared login/signup path, then reconcile workspace membership
+        against the group claim.
+
+        Overridden here rather than added to the shared adapter so no other
+        provider's behaviour changes and the fork stays easy to rebase.
+        """
+        user = super().complete_login_or_signup()
+        sync_oidc_workspace_groups(user, getattr(self, "oidc_groups", []))
+        return user
