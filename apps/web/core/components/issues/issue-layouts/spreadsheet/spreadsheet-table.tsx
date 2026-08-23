@@ -6,6 +6,7 @@
 
 import type { MutableRefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { observer } from "mobx-react";
 // plane imports
 import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, TIssue } from "@plane/types";
@@ -19,6 +20,7 @@ import { useTableKeyboardNavigation } from "@/hooks/use-table-keyboard-navigatio
 // local imports
 import type { TRenderQuickActions } from "../list/list-view-types";
 import { getDisplayPropertiesCount } from "../utils";
+import type { TSpreadsheetColumnKey } from "./column-order";
 import { SpreadsheetIssueRow } from "./issue-row";
 import { SpreadsheetHeader } from "./spreadsheet-header";
 
@@ -36,6 +38,11 @@ type Props = {
   canLoadMoreIssues: boolean;
   loadMoreIssues: () => void;
   spreadsheetColumnsList: (keyof IIssueDisplayProperties)[];
+  onColumnReorder?: (
+    sourceProperty: TSpreadsheetColumnKey,
+    destinationProperty: TSpreadsheetColumnKey,
+    edge: Edge | null
+  ) => void;
   selectionHelpers: TSelectionHelper;
   isEpic?: boolean;
 };
@@ -55,6 +62,7 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
     containerRef,
     loadMoreIssues,
     spreadsheetColumnsList,
+    onColumnReorder,
     selectionHelpers,
     isEpic = false,
   } = props;
@@ -119,6 +127,7 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
         canEditProperties={canEditProperties}
         isEstimateEnabled={isEstimateEnabled}
         spreadsheetColumnsList={spreadsheetColumnsList}
+        onColumnReorder={onColumnReorder}
         selectionHelpers={selectionHelpers}
         isEpic={isEpic}
       />

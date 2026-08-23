@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import type { Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // constants
@@ -15,6 +16,7 @@ import { cn } from "@plane/utils";
 import { MultipleSelectGroupAction } from "@/components/core/multiple-select";
 // hooks
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
+import type { TSpreadsheetColumnKey } from "./column-order";
 import { SpreadsheetHeaderColumn } from "./spreadsheet-header-column";
 
 interface Props {
@@ -24,6 +26,11 @@ interface Props {
   canEditProperties: (projectId: string | undefined) => boolean;
   isEstimateEnabled: boolean;
   spreadsheetColumnsList: (keyof IIssueDisplayProperties)[];
+  onColumnReorder?: (
+    sourceProperty: TSpreadsheetColumnKey,
+    destinationProperty: TSpreadsheetColumnKey,
+    edge: Edge | null
+  ) => void;
   selectionHelpers: TSelectionHelper;
   isEpic?: boolean;
 }
@@ -36,6 +43,7 @@ export const SpreadsheetHeader = observer(function SpreadsheetHeader(props: Prop
     canEditProperties,
     isEstimateEnabled,
     spreadsheetColumnsList,
+    onColumnReorder,
     selectionHelpers,
     isEpic = false,
   } = props;
@@ -84,6 +92,7 @@ export const SpreadsheetHeader = observer(function SpreadsheetHeader(props: Prop
             displayFilters={displayFilters}
             handleDisplayFilterUpdate={handleDisplayFilterUpdate}
             isEstimateEnabled={isEstimateEnabled}
+            onColumnReorder={onColumnReorder}
             isEpic={isEpic}
           />
         ))}

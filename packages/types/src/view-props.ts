@@ -161,6 +161,12 @@ export interface IIssueDisplayFilterOptions {
   order_by?: TIssueOrderByOptions;
   show_empty_groups?: boolean;
   sub_issue?: boolean;
+  /**
+   * User-defined left-to-right order of the spreadsheet layout's columns.
+   * Persisted as-is inside the display_filters JSON blob. May be stale with
+   * respect to the current column list, so always reconcile before rendering.
+   */
+  column_order?: (keyof IIssueDisplayProperties)[];
 }
 export interface IIssueDisplayProperties {
   assignee?: boolean;
