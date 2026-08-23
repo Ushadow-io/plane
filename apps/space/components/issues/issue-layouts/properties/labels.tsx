@@ -35,38 +35,34 @@ export const IssueBlockLabels = observer(function IssueBlockLabels({ labelIds, s
       </Tooltip>
     );
 
+  const shownLabels = labels.slice(0, 2);
+  const hiddenCount = labels.length - shownLabels.length;
+
   return (
     <div className="flex h-5 w-full flex-wrap items-center gap-2 overflow-hidden">
-      {labels.length <= 2 ? (
-        <>
-          {labels.map((label) => (
-            <Tooltip key={label.id} position="top" tooltipHeading="Labels" tooltipContent={label?.name ?? ""}>
-              <div
-                key={label?.id}
-                className={`flex h-full max-w-full flex-shrink-0 items-center overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1 text-11`}
-              >
-                <div className="flex max-w-full items-center gap-1.5 overflow-hidden text-secondary">
-                  <span
-                    className="h-2 w-2 flex-shrink-0 rounded-full"
-                    style={{
-                      backgroundColor: label?.color ?? "#000000",
-                    }}
-                  />
-                  <div className="line-clamp-1 inline-block w-auto max-w-[100px] truncate">{label?.name}</div>
-                </div>
-              </div>
-            </Tooltip>
-          ))}
-        </>
-      ) : (
+      {shownLabels.map((label) => (
+        <Tooltip key={label.id} position="top" tooltipHeading="Labels" tooltipContent={label?.name ?? ""}>
+          <div
+            className={`flex h-full max-w-full flex-shrink-0 items-center overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1 text-11`}
+          >
+            <div className="flex max-w-full items-center gap-1.5 overflow-hidden text-secondary">
+              <span
+                className="h-2 w-2 flex-shrink-0 rounded-full"
+                style={{
+                  backgroundColor: label?.color ?? "#000000",
+                }}
+              />
+              <div className="line-clamp-1 inline-block w-auto max-w-[100px] truncate">{label?.name}</div>
+            </div>
+          </div>
+        </Tooltip>
+      ))}
+      {hiddenCount > 0 && (
         <div
-          className={`cursor-not-allowed" flex h-full flex-shrink-0 items-center rounded-sm border-[0.5px] border-strong px-2.5 py-1 text-11`}
+          className={`flex h-full flex-shrink-0 cursor-not-allowed items-center rounded-sm border-[0.5px] border-strong px-2.5 py-1 text-11`}
         >
           <Tooltip position="top" tooltipHeading="Labels" tooltipContent={labelsString}>
-            <div className="flex h-full items-center gap-1.5 text-secondary">
-              <span className="h-2 w-2 flex-shrink-0 rounded-full bg-accent-primary" />
-              {`${labels.length} Labels`}
-            </div>
+            <div className="flex h-full items-center gap-1.5 text-secondary">{`+${hiddenCount}`}</div>
           </Tooltip>
         </div>
       )}

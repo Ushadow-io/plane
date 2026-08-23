@@ -1,3 +1,5 @@
+// oxlint-disable jsx_a11y/click-events-have-key-events
+// oxlint-disable jsx_a11y/no-static-element-interactions
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -37,7 +39,52 @@ export type TWorkItemLabelSelectBaseProps = {
   createLabel?: (data: Partial<IIssueLabel>) => Promise<IIssueLabel>;
   tabIndex?: number;
   value: string[];
+  /** Text shown on the button when nothing is selected. Defaults to "Labels". */
+  placeholder?: string;
+  /**
+   * When true the options are rendered as one flat list, with no group headers.
+   * Used by the per-group dropdowns, where every option already belongs to one group.
+   */
+  flat?: boolean;
 };
+
+type TLabelOptionProps = {
+  label: IIssueLabel;
+  minWidth?: boolean;
+};
+
+function LabelOption({ label, minWidth = false }: TLabelOptionProps) {
+  return (
+    <Combobox.Option
+      key={label.id}
+      className={({ active }) =>
+        cn(
+          "group flex w-full cursor-pointer items-center gap-2 truncate rounded-sm px-1 py-1.5 text-secondary select-none",
+          active && "bg-layer-1",
+          minWidth && "min-w-[14rem]"
+        )
+      }
+      value={label.id}
+    >
+      {({ selected }) => (
+        <div className="flex w-full justify-between gap-2 rounded-sm">
+          <div className="flex items-center justify-start gap-2 truncate">
+            <span
+              className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+              style={{
+                backgroundColor: label.color,
+              }}
+            />
+            <span className="truncate">{label.name}</span>
+          </div>
+          <div className="flex shrink-0 items-center justify-center rounded-sm p-1">
+            <CheckIcon className={`h-3 w-3 ${selected ? "opacity-100" : "opacity-0"}`} />
+          </div>
+        </div>
+      )}
+    </Combobox.Option>
+  );
+}
 
 export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase(props: TWorkItemLabelSelectBaseProps) {
   const {
@@ -54,6 +101,8 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
     createLabel,
     tabIndex,
     value,
+    placeholder,
+    flat = false,
   } = props;
   // refs
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -73,7 +122,7 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
     placement: placement ?? "bottom-start",
   });
   // derived values
-  const labelsList = labelIds.map((labelId) => getLabelById(labelId)).filter((label) => !!label);
+  const labelsList = labelIds.map((labelId) => getLabelById(labelId)).filter((l) => !!l);
   const filteredOptions =
     query === "" ? labelsList : labelsList?.filter((l) => l.name.toLowerCase().includes(query.toLowerCase()));
 
@@ -186,7 +235,7 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
             )}
           >
             <LabelPropertyIcon className="h-3 w-3 flex-shrink-0" />
-            <span>{t("labels")}</span>
+            <span>{placeholder ?? t("labels")}</span>
           </div>
         )}
       </button>
@@ -214,78 +263,30 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
             <div className="mt-2 max-h-48 space-y-1 overflow-y-scroll">
               {labelsList && filteredOptions ? (
                 filteredOptions.length > 0 ? (
-                  filteredOptions.map((label) => {
-                    const children = labelsList?.filter((l) => l.parent === label.id);
+                  flat ? (
+                    filteredOptions.map((option) => <LabelOption key={option.id} label={option} />)
+                  ) : (
+                    filteredOptions.map((option) => {
+                      const children = labelsList?.filter((l) => l.parent === option.id);
 
-                    if (children.length === 0) {
-                      if (!label.parent)
-                        return (
-                          <Combobox.Option
-                            key={label.id}
-                            className={({ active }) =>
-                              `${
-                                active ? "bg-layer-1" : ""
-                              } group flex w-full cursor-pointer items-center gap-2 truncate rounded-sm px-1 py-1.5 text-secondary select-none`
-                            }
-                            value={label.id}
-                          >
-                            {({ selected }) => (
-                              <div className="flex w-full justify-between gap-2 rounded-sm">
-                                <div className="flex items-center justify-start gap-2 truncate">
-                                  <span
-                                    className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                                    style={{
-                                      backgroundColor: label.color,
-                                    }}
-                                  />
-                                  <span className="truncate">{label.name}</span>
-                                </div>
-                                <div className="flex shrink-0 items-center justify-center rounded-sm p-1">
-                                  <CheckIcon className={`h-3 w-3 ${selected ? "opacity-100" : "opacity-0"}`} />
-                                </div>
-                              </div>
-                            )}
-                          </Combobox.Option>
-                        );
-                    } else
+                      if (children.length === 0) {
+                        if (!option.parent) return <LabelOption key={option.id} label={option} />;
+                        return null;
+                      }
                       return (
-                        <div key={label.id} className="border-y border-subtle">
+                        <div key={option.id} className="border-y border-subtle">
                           <div className="flex items-center gap-2 truncate p-2 text-primary select-none">
-                            <Component className="h-3 w-3" /> {label.name}
+                            <Component className="h-3 w-3" /> {option.name}
                           </div>
                           <div>
                             {children.map((child) => (
-                              <Combobox.Option
-                                key={child.id}
-                                className={({ active }) =>
-                                  `${
-                                    active ? "bg-layer-1" : ""
-                                  } group flex min-w-[14rem] cursor-pointer items-center gap-2 truncate rounded-sm px-1 py-1.5 text-secondary select-none`
-                                }
-                                value={child.id}
-                              >
-                                {({ selected }) => (
-                                  <div className="flex w-full justify-between gap-2 rounded-sm">
-                                    <div className="flex items-center justify-start gap-2">
-                                      <span
-                                        className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                                        style={{
-                                          backgroundColor: child?.color,
-                                        }}
-                                      />
-                                      <span>{child.name}</span>
-                                    </div>
-                                    <div className="flex items-center justify-center rounded-sm p-1">
-                                      <CheckIcon className={`h-3 w-3 ${selected ? "opacity-100" : "opacity-0"}`} />
-                                    </div>
-                                  </div>
-                                )}
-                              </Combobox.Option>
+                              <LabelOption key={child.id} label={child} minWidth />
                             ))}
                           </div>
                         </div>
                       );
-                  })
+                    })
+                  )
                 ) : submitting ? (
                   <Loader className="h-3.5 w-3.5 animate-spin" />
                 ) : createLabelEnabled ? (
