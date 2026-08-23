@@ -20,6 +20,7 @@ import { CheckIcon, SearchIcon, LabelPropertyIcon } from "@plane/propel/icons";
 import type { IIssueLabel } from "@plane/types";
 import { cn } from "@plane/utils";
 // components
+import { LabelIcon } from "@/components/labels/label-icon";
 import { IssueLabelsList } from "@/components/ui/labels-list";
 // hooks
 import { useDropdownKeyDown } from "@/hooks/use-dropdown-key-down";
@@ -69,12 +70,7 @@ function LabelOption({ label, minWidth = false }: TLabelOptionProps) {
       {({ selected }) => (
         <div className="flex w-full justify-between gap-2 rounded-sm">
           <div className="flex items-center justify-start gap-2 truncate">
-            <span
-              className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-              style={{
-                backgroundColor: label.color,
-              }}
-            />
+            <LabelIcon label={label} size={10} />
             <span className="truncate">{label.name}</span>
           </div>
           <div className="flex shrink-0 items-center justify-center rounded-sm p-1">

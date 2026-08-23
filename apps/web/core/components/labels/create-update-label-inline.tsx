@@ -1,12 +1,16 @@
+// oxlint-disable no-shadow
+// oxlint-disable jsx_a11y/no-autofocus
+// oxlint-disable promise/always-return
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
 
-import React, { forwardRef, useEffect } from "react";
+import React, { forwardRef, useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { TwitterPicker } from "react-color";
+import { SmilePlus } from "lucide-react";
 import type { SubmitHandler } from "react-hook-form";
 import { Controller, useForm } from "react-hook-form";
 import { Popover, Transition } from "@headlessui/react";
@@ -14,6 +18,8 @@ import { Popover, Transition } from "@headlessui/react";
 import { getRandomLabelColor, LABEL_COLOR_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
+import type { TChangeHandlerProps } from "@plane/propel/emoji-icon-picker";
+import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@plane/propel/emoji-icon-picker";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IIssueLabel } from "@plane/types";
 import { Input } from "@plane/ui";
@@ -48,6 +54,8 @@ export const CreateUpdateLabelInline = observer(
     ref: React.ForwardedRef<HTMLDivElement>
   ) {
     const { labelForm, setLabelForm, isUpdating, labelOperationsCallbacks, labelToUpdate, onClose } = props;
+    // states
+    const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
     // form info
     const {
       handleSubmit,
@@ -62,6 +70,8 @@ export const CreateUpdateLabelInline = observer(
     });
 
     const { t } = useTranslation();
+    // derived values
+    const logoValue = watch("logo_props");
 
     const handleClose = () => {
       setLabelForm(false);
@@ -146,6 +156,7 @@ export const CreateUpdateLabelInline = observer(
 
       setValue("name", labelToUpdate.name);
       setValue("color", labelToUpdate.color && labelToUpdate.color !== "" ? labelToUpdate.color : "#000");
+      setValue("logo_props", labelToUpdate.logo_props);
     }, [labelToUpdate, setValue]);
 
     useEffect(() => {
@@ -163,6 +174,30 @@ export const CreateUpdateLabelInline = observer(
           ref={ref}
           className={`flex w-full scroll-m-8 items-center gap-2 bg-surface-1 ${labelForm ? "" : "hidden"}`}
         >
+          <div className="flex-shrink-0">
+            <EmojiPicker
+              isOpen={isEmojiPickerOpen}
+              handleToggle={(val: boolean) => setIsEmojiPickerOpen(val)}
+              iconType="lucide"
+              buttonClassName="flex items-center justify-center"
+              label={
+                <span className="grid size-6 place-items-center rounded-sm text-placeholder hover:bg-layer-1">
+                  {logoValue?.in_use ? (
+                    <Logo logo={logoValue} size={16} type="lucide" />
+                  ) : (
+                    <SmilePlus className="size-4" />
+                  )}
+                </span>
+              }
+              onChange={(val: TChangeHandlerProps) => {
+                const logo = val.type === EmojiIconPickerTypes.EMOJI ? { value: val.value } : val.value;
+                setValue("logo_props", { in_use: val.type, [val.type]: logo });
+                setIsEmojiPickerOpen(false);
+              }}
+              defaultIconColor={logoValue?.in_use === "icon" ? logoValue?.icon?.color : undefined}
+              defaultOpen={logoValue?.in_use === "icon" ? EmojiIconPickerTypes.ICON : EmojiIconPickerTypes.EMOJI}
+            />
+          </div>
           <div className="flex-shrink-0">
             <Popover className="relative z-10 flex h-full w-full items-center justify-center">
               {({ open }) => (

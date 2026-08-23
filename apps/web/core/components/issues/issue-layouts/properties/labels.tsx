@@ -18,6 +18,7 @@ import type { IIssueLabel } from "@plane/types";
 // ui
 // hooks
 import { cn } from "@plane/utils";
+import { LabelIcon } from "@/components/labels/label-icon";
 import { useLabel } from "@/hooks/store/use-label";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { LabelDropdown } from "./label-dropdown";
@@ -122,10 +123,7 @@ function LabelSummary({
               noLabelBorder ? "rounded-none" : "border-[0.5px] border-strong"
             )}
           >
-            <span
-              className="h-2 w-2 flex-shrink-0 rounded-full"
-              style={{ backgroundColor: label?.color ?? "#000000" }}
-            />
+            <LabelIcon label={label} size={8} />
             <span className="truncate">{label?.name}</span>
           </div>
         ))}
@@ -180,12 +178,7 @@ const LabelItem = observer(function LabelItem({
         )}
       >
         <div className="flex max-w-full items-center gap-1.5 overflow-hidden text-secondary">
-          <span
-            className="h-2 w-2 flex-shrink-0 rounded-full"
-            style={{
-              backgroundColor: label?.color ?? "#000000",
-            }}
-          />
+          <LabelIcon label={label} size={8} />
           <div className="line-clamp-1 inline-block w-auto max-w-[200px] truncate">{label?.name}</div>
         </div>
       </div>

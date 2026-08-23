@@ -5,15 +5,13 @@
  */
 
 import type { Dispatch, SetStateAction } from "react";
-import { useState } from "react";
 import { observer } from "mobx-react";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
-import { EditIcon, TrashIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { TrashIcon, ChevronDownIcon } from "@plane/propel/icons";
 import type { IIssueLabel } from "@plane/types";
 // components
 import type { TLabelOperationsCallbacks } from "./create-update-label-inline";
-import { CreateUpdateLabelInline } from "./create-update-label-inline";
 import type { ICustomMenuItem } from "./label-block/label-item-block";
 import { LabelItemBlock } from "./label-block/label-item-block";
 import { LabelDndHOC } from "./label-drag-n-drop-HOC";
@@ -49,20 +47,7 @@ export const ProjectSettingLabelGroup = observer(function ProjectSettingLabelGro
     labelOperationsCallbacks,
   } = props;
 
-  // states
-  const [isEditLabelForm, setEditLabelForm] = useState(false);
-
   const customMenuItems: ICustomMenuItem[] = [
-    {
-      CustomIcon: EditIcon,
-      onClick: () => {
-        setEditLabelForm(true);
-        setIsUpdating(true);
-      },
-      isVisible: true,
-      text: "Edit label",
-      key: "edit_label",
-    },
     {
       CustomIcon: TrashIcon,
       onClick: () => {
@@ -92,28 +77,16 @@ export const ProjectSettingLabelGroup = observer(function ProjectSettingLabelGro
                 <div className={`py-3 pr-3 pl-1 ${!isUpdating && "max-h-full overflow-y-hidden"}`}>
                   <>
                     <div className="relative flex cursor-pointer items-center justify-between gap-2">
-                      {isEditLabelForm ? (
-                        <CreateUpdateLabelInline
-                          labelForm={isEditLabelForm}
-                          setLabelForm={setEditLabelForm}
-                          isUpdating
-                          labelToUpdate={label}
-                          labelOperationsCallbacks={labelOperationsCallbacks}
-                          onClose={() => {
-                            setEditLabelForm(false);
-                            setIsUpdating(false);
-                          }}
-                        />
-                      ) : (
-                        <LabelItemBlock
-                          label={label}
-                          isDragging={isDragging}
-                          customMenuItems={customMenuItems}
-                          handleLabelDelete={handleLabelDelete}
-                          isLabelGroup
-                          dragHandleRef={dragHandleRef}
-                        />
-                      )}
+                      <LabelItemBlock
+                        label={label}
+                        isDragging={isDragging}
+                        customMenuItems={customMenuItems}
+                        handleLabelDelete={handleLabelDelete}
+                        isLabelGroup
+                        dragHandleRef={dragHandleRef}
+                        disabled={!isEditable}
+                        onUpdate={(data) => labelOperationsCallbacks.updateLabel(label.id, data)}
+                      />
 
                       <Disclosure.Button>
                         <span>

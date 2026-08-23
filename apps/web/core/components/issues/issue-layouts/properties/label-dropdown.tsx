@@ -1,3 +1,7 @@
+// oxlint-disable no-shadow
+// oxlint-disable unicorn/consistent-function-scoping
+// oxlint-disable jsx_a11y/click-events-have-key-events
+// oxlint-disable jsx_a11y/no-static-element-interactions
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -22,6 +26,7 @@ import { EUserProjectRoles } from "@plane/types";
 import { ComboDropDown } from "@plane/ui";
 import { sortBySelectedFirst } from "@plane/utils";
 // hooks
+import { LabelIcon } from "@/components/labels/label-icon";
 import { useLabel } from "@/hooks/store/use-label";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useDropdownKeyDown } from "@/hooks/use-dropdown-key-down";
@@ -104,12 +109,7 @@ export function LabelDropdown(props: ILabelDropdownProps) {
         query: label?.name,
         content: (
           <div className="flex items-center justify-start gap-2 overflow-hidden">
-            <span
-              className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-              style={{
-                backgroundColor: label?.color,
-              }}
-            />
+            <LabelIcon label={label} size={10} />
             <div className="line-clamp-1 inline-block truncate">{label?.name}</div>
           </div>
         ),

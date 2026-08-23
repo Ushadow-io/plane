@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import type { TLogoProps } from "./common";
 import type { ICycle } from "./cycle";
 import type { TIssue } from "./issues/issue";
 import type { IModule } from "./module";
@@ -63,6 +64,7 @@ export interface IIssueLabel {
   id: string;
   name: string;
   color: string;
+  logo_props?: TLogoProps;
   project_id: string;
   workspace_id: string;
   parent: string | null;

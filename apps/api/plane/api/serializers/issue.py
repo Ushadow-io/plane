@@ -347,6 +347,7 @@ class LabelCreateUpdateSerializer(BaseSerializer):
         fields = [
             "name",
             "color",
+            "logo_props",
             "description",
             "external_source",
             "external_id",
@@ -805,7 +806,7 @@ class LabelLiteSerializer(BaseSerializer):
 
     class Meta:
         model = Label
-        fields = ["id", "name", "color"]
+        fields = ["id", "name", "color", "logo_props"]
 
 
 class IssueExpandSerializer(BaseSerializer):

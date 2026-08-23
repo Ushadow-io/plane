@@ -365,6 +365,7 @@ class LabelSerializer(BaseSerializer):
             "parent",
             "name",
             "color",
+            "logo_props",
             "id",
             "project_id",
             "workspace_id",
@@ -389,7 +390,7 @@ class LabelSerializer(BaseSerializer):
 class LabelLiteSerializer(BaseSerializer):
     class Meta:
         model = Label
-        fields = ["id", "name", "color"]
+        fields = ["id", "name", "color", "logo_props"]
 
 
 class IssueLabelSerializer(BaseSerializer):

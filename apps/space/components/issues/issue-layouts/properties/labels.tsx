@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { Logo } from "@plane/propel/emoji-icon-picker";
 import { LabelPropertyIcon } from "@plane/propel/icons";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";
@@ -46,12 +47,18 @@ export const IssueBlockLabels = observer(function IssueBlockLabels({ labelIds, s
             className={`flex h-full max-w-full flex-shrink-0 items-center overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1 text-11`}
           >
             <div className="flex max-w-full items-center gap-1.5 overflow-hidden text-secondary">
-              <span
-                className="h-2 w-2 flex-shrink-0 rounded-full"
-                style={{
-                  backgroundColor: label?.color ?? "#000000",
-                }}
-              />
+              {label?.logo_props?.in_use ? (
+                <span className="flex flex-shrink-0 items-center justify-center">
+                  <Logo logo={label.logo_props} size={14} type="lucide" />
+                </span>
+              ) : (
+                <span
+                  className="h-2 w-2 flex-shrink-0 rounded-full"
+                  style={{
+                    backgroundColor: label?.color ?? "#000000",
+                  }}
+                />
+              )}
               <div className="line-clamp-1 inline-block w-auto max-w-[100px] truncate">{label?.name}</div>
             </div>
           </div>

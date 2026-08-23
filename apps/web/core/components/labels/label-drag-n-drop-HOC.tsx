@@ -1,3 +1,5 @@
+// oxlint-disable no-shadow
+// oxlint-disable eslint-plugin-react-hooks/exhaustive-deps
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -34,7 +36,7 @@ export function LabelDragPreview(props: LabelDragPreviewProps) {
 
   return (
     <div className="border-[1px] border-subtle bg-surface-1 py-3 pr-4 pl-2">
-      <LabelName name={label.name} color={label.color} isGroup={isGroup} />
+      <LabelName label={label} isGroup={isGroup} disabled onUpdate={() => {}} />
     </div>
   );
 }

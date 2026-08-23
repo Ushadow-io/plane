@@ -8,6 +8,7 @@
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IIssueLabel } from "@plane/types";
 // types
+import { LabelIcon } from "@/components/labels/label-icon";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // hooks
 
@@ -40,7 +41,7 @@ export function IssueLabelsList(props: IssueLabelsListProps) {
             key={l.id}
             className="flex h-full max-w-[140px] items-center gap-1 rounded-sm border-[0.5px] border-strong px-2 py-1 text-11 text-secondary"
           >
-            <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: l.color ?? "#000000" }} />
+            <LabelIcon label={l} size={8} />
             <span className="truncate">{l.name}</span>
           </div>
         ))}

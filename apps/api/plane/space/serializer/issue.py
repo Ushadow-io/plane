@@ -453,4 +453,4 @@ class IssuePublicSerializer(BaseSerializer):
 class LabelLiteSerializer(BaseSerializer):
     class Meta:
         model = Label
-        fields = ["id", "name", "color"]
+        fields = ["id", "name", "color", "logo_props"]

@@ -5,16 +5,14 @@
  */
 
 import type { Dispatch, SetStateAction } from "react";
-import { useState } from "react";
 import { useParams } from "next/navigation";
-import { EditIcon, CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@plane/propel/icons";
 // types
 import type { IIssueLabel } from "@plane/types";
 // hooks
 import { useLabel } from "@/hooks/store/use-label";
 // components
 import type { TLabelOperationsCallbacks } from "./create-update-label-inline";
-import { CreateUpdateLabelInline } from "./create-update-label-inline";
 import type { ICustomMenuItem } from "./label-block/label-item-block";
 import { LabelItemBlock } from "./label-block/label-item-block";
 import { LabelDndHOC } from "./label-drag-n-drop-HOC";
@@ -39,7 +37,6 @@ type Props = {
 export function ProjectSettingLabelItem(props: Props) {
   const {
     label,
-    setIsUpdating,
     handleLabelDelete,
     isChild,
     isLastChild,
@@ -48,17 +45,15 @@ export function ProjectSettingLabelItem(props: Props) {
     labelOperationsCallbacks,
     isEditable = false,
   } = props;
-  // states
-  const [isEditLabelForm, setEditLabelForm] = useState(false);
   // router
   const { workspaceSlug, projectId } = useParams();
   // store hooks
   const { updateLabel } = useLabel();
 
-  const removeFromGroup = (label: IIssueLabel) => {
+  const removeFromGroup = (labelToRemove: IIssueLabel) => {
     if (!workspaceSlug || !projectId) return;
 
-    updateLabel(workspaceSlug.toString(), projectId.toString(), label.id, {
+    updateLabel(workspaceSlug.toString(), projectId.toString(), labelToRemove.id, {
       parent: null,
     });
   };
@@ -70,16 +65,6 @@ export function ProjectSettingLabelItem(props: Props) {
       isVisible: !!label.parent,
       text: "Remove from group",
       key: "remove_from_group",
-    },
-    {
-      CustomIcon: EditIcon,
-      onClick: () => {
-        setEditLabelForm(true);
-        setIsUpdating(true);
-      },
-      isVisible: true,
-      text: "Edit label",
-      key: "edit_label",
     },
   ];
 
@@ -94,28 +79,15 @@ export function ProjectSettingLabelItem(props: Props) {
               isDroppingInLabel ? "" : "border-[0.5px] border-subtle"
             } ${isDragging || isParentDragging ? "bg-layer-1" : "bg-surface-1"}`}
           >
-            {isEditLabelForm ? (
-              <CreateUpdateLabelInline
-                labelForm={isEditLabelForm}
-                setLabelForm={setEditLabelForm}
-                isUpdating
-                labelToUpdate={label}
-                labelOperationsCallbacks={labelOperationsCallbacks}
-                onClose={() => {
-                  setEditLabelForm(false);
-                  setIsUpdating(false);
-                }}
-              />
-            ) : (
-              <LabelItemBlock
-                label={label}
-                isDragging={isDragging}
-                customMenuItems={customMenuItems}
-                handleLabelDelete={handleLabelDelete}
-                dragHandleRef={dragHandleRef}
-                disabled={!isEditable}
-              />
-            )}
+            <LabelItemBlock
+              label={label}
+              isDragging={isDragging}
+              customMenuItems={customMenuItems}
+              handleLabelDelete={handleLabelDelete}
+              dragHandleRef={dragHandleRef}
+              disabled={!isEditable}
+              onUpdate={(data) => labelOperationsCallbacks.updateLabel(label.id, data)}
+            />
           </div>
         </div>
       )}

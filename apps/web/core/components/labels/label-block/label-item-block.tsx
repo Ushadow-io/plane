@@ -7,11 +7,13 @@
 import type { MutableRefObject } from "react";
 import { useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
+import { ImageOff } from "lucide-react";
 // plane helpers
 import { PROJECT_SETTINGS_TRACKER_ELEMENTS } from "@plane/constants";
 import { useOutsideClickDetector } from "@plane/hooks";
 import type { ISvgIcons } from "@plane/propel/icons";
 import { CloseIcon } from "@plane/propel/icons";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // types
 import type { IIssueLabel } from "@plane/types";
 // ui
@@ -38,6 +40,7 @@ interface ILabelItemBlock {
   dragHandleRef: MutableRefObject<HTMLButtonElement | null>;
   disabled?: boolean;
   draggable?: boolean;
+  onUpdate?: (data: Partial<IIssueLabel>) => Promise<IIssueLabel>;
 }
 
 export function LabelItemBlock(props: ILabelItemBlock) {
@@ -50,6 +53,7 @@ export function LabelItemBlock(props: ILabelItemBlock) {
     dragHandleRef,
     disabled = false,
     draggable = true,
+    onUpdate,
   } = props;
   // states
   const [isMenuActive, setIsMenuActive] = useState(true);
@@ -58,9 +62,36 @@ export function LabelItemBlock(props: ILabelItemBlock) {
 
   useOutsideClickDetector(actionSectionRef, () => setIsMenuActive(false));
 
+  // Inline edits save straight away. The store reverts optimistically on failure, so
+  // all that is left to do here is tell the user what went wrong.
+  const handleUpdate = (data: Partial<IIssueLabel>) => {
+    if (!onUpdate) return;
+    onUpdate(data).catch((error) => {
+      const nameTaken = Array.isArray(error?.name) && error.name.includes("LABEL_NAME_ALREADY_EXISTS");
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: nameTaken
+          ? "A label with that name already exists in this project."
+          : (error?.error ?? error?.detail ?? "Something went wrong. Please try again."),
+      });
+    });
+  };
+
+  const menuItems: ICustomMenuItem[] = [
+    ...customMenuItems,
+    {
+      CustomIcon: ImageOff,
+      onClick: () => handleUpdate({ logo_props: {} as IIssueLabel["logo_props"] }),
+      isVisible: !!label.logo_props?.in_use && !!onUpdate,
+      text: "Remove icon",
+      key: "remove_icon",
+    },
+  ];
+
   return (
     <div className="group flex items-center">
-      <div className="flex items-center">
+      <div className="flex min-w-0 flex-1 items-center">
         {!disabled && draggable && (
           <DragHandle
             className={cn("opacity-0 group-hover:opacity-100", {
@@ -69,7 +100,12 @@ export function LabelItemBlock(props: ILabelItemBlock) {
             ref={dragHandleRef}
           />
         )}
-        <LabelName color={label.color} name={label.name} isGroup={isLabelGroup ?? false} />
+        <LabelName
+          label={label}
+          isGroup={isLabelGroup ?? false}
+          disabled={disabled || !onUpdate}
+          onUpdate={handleUpdate}
+        />
       </div>
 
       {!disabled && (
@@ -82,7 +118,7 @@ export function LabelItemBlock(props: ILabelItemBlock) {
           } ${isLabelGroup && "-top-0.5"}`}
         >
           <CustomMenu ellipsis menuButtonOnClick={() => setIsMenuActive(!isMenuActive)} useCaptureForOutsideClick>
-            {customMenuItems.map(
+            {menuItems.map(
               ({ isVisible, onClick, CustomIcon, text, key }) =>
                 isVisible && (
                   <CustomMenu.MenuItem key={key} onClick={() => onClick(label)}>
