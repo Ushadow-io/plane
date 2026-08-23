@@ -18,26 +18,38 @@ type IssueLabelsListProps = {
 };
 
 export function IssueLabelsList(props: IssueLabelsListProps) {
-  const { labels } = props;
+  const { labels, length = 3, showLength = true } = props;
   const { isMobile } = usePlatformOS();
+
+  const visibleLabels = labels?.filter((l) => !!l) ?? [];
+  if (visibleLabels.length === 0) return null;
+
+  const shownLabels = visibleLabels.slice(0, length);
+  const hiddenCount = visibleLabels.length - shownLabels.length;
+
   return (
-    <>
-      {labels && (
-        <>
-          <Tooltip
-            position="top"
-            tooltipHeading="Labels"
-            tooltipContent={labels.map((l) => l?.name).join(", ")}
-            isMobile={isMobile}
+    <Tooltip
+      position="top"
+      tooltipHeading="Labels"
+      tooltipContent={visibleLabels.map((l) => l.name).join(", ")}
+      isMobile={isMobile}
+    >
+      <div className="flex h-full items-center gap-1">
+        {shownLabels.map((l) => (
+          <div
+            key={l.id}
+            className="flex h-full max-w-[140px] items-center gap-1 rounded-sm border-[0.5px] border-strong px-2 py-1 text-11 text-secondary"
           >
-            <div className="flex h-full items-center gap-1 rounded-sm border-[0.5px] border-strong px-2 py-1 text-11 text-secondary">
-              <span className="h-2 w-2 flex-shrink-0 rounded-full bg-accent-primary" />
-              <span>{labels.length}</span>
-              <span> Labels</span>
-            </div>
-          </Tooltip>
-        </>
-      )}
-    </>
+            <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: l.color ?? "#000000" }} />
+            <span className="truncate">{l.name}</span>
+          </div>
+        ))}
+        {showLength && hiddenCount > 0 && (
+          <div className="flex h-full items-center rounded-sm border-[0.5px] border-strong px-2 py-1 text-11 text-secondary">
+            {`+${hiddenCount}`}
+          </div>
+        )}
+      </div>
+    </Tooltip>
   );
 }

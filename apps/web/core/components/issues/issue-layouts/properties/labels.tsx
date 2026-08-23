@@ -81,35 +81,66 @@ type LabelSummaryProps = {
   disabled?: boolean;
   projectLabels: IIssueLabel[];
   value: string[];
+  maxRender: number;
 };
 
-function LabelSummary({ isMobile, fullWidth, noLabelBorder, disabled, projectLabels, value }: LabelSummaryProps) {
+function LabelSummary({
+  isMobile,
+  fullWidth,
+  noLabelBorder,
+  disabled,
+  projectLabels,
+  value,
+  maxRender,
+}: LabelSummaryProps) {
   const { t } = useTranslation();
+  // labels the work item actually has, in project order
+  const selectedLabels = projectLabels?.filter((l) => value.includes(l?.id)) ?? [];
+  const shownLabels = selectedLabels.slice(0, maxRender);
+  const hiddenCount = value.length - shownLabels.length;
+
   return (
-    <div
-      className={cn(
-        "flex h-5 flex-shrink-0 items-center justify-center rounded-sm px-2.5 text-caption-sm-regular",
-        fullWidth && "w-full",
-        noLabelBorder ? "rounded-none" : "border-[0.5px] border-strong",
-        disabled ? "cursor-not-allowed" : "cursor-pointer"
-      )}
+    <Tooltip
+      isMobile={isMobile}
+      position="top"
+      tooltipHeading={t("common.labels")}
+      tooltipContent={selectedLabels.map((l) => l?.name).join(", ")}
+      renderByDefault={false}
     >
-      <Tooltip
-        isMobile={isMobile}
-        position="top"
-        tooltipHeading={t("common.labels")}
-        tooltipContent={projectLabels
-          ?.filter((l) => value.includes(l?.id))
-          .map((l) => l?.name)
-          .join(", ")}
-        renderByDefault={false}
+      <div
+        className={cn(
+          "flex h-5 max-w-full flex-shrink-0 items-center gap-1",
+          fullWidth && "w-full",
+          disabled ? "cursor-not-allowed" : "cursor-pointer"
+        )}
       >
-        <div className="flex h-full items-center gap-1.5 text-secondary">
-          <span className="h-2 w-2 flex-shrink-0 rounded-full bg-accent-primary" />
-          {`${value.length} Labels`}
-        </div>
-      </Tooltip>
-    </div>
+        {shownLabels.map((label) => (
+          <div
+            key={label.id}
+            className={cn(
+              "flex h-full max-w-[140px] items-center gap-1.5 rounded-sm px-2.5 text-caption-sm-regular text-secondary",
+              noLabelBorder ? "rounded-none" : "border-[0.5px] border-strong"
+            )}
+          >
+            <span
+              className="h-2 w-2 flex-shrink-0 rounded-full"
+              style={{ backgroundColor: label?.color ?? "#000000" }}
+            />
+            <span className="truncate">{label?.name}</span>
+          </div>
+        ))}
+        {hiddenCount > 0 && (
+          <div
+            className={cn(
+              "flex h-full flex-shrink-0 items-center rounded-sm px-2.5 text-caption-sm-regular text-secondary",
+              noLabelBorder ? "rounded-none" : "border-[0.5px] border-strong"
+            )}
+          >
+            {`+${hiddenCount}`}
+          </div>
+        )}
+      </div>
+    </Tooltip>
   );
 }
 
@@ -254,6 +285,7 @@ export const IssuePropertyLabels = observer(function IssuePropertyLabels(props: 
                 disabled={disabled}
                 projectLabels={projectLabels}
                 value={value}
+                maxRender={maxRender}
               />
             }
           />
