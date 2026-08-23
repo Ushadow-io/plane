@@ -4,7 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import React, { useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
+import type { Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { observer } from "mobx-react";
 // plane constants
 import { SPREADSHEET_SELECT_GROUP, SPREADSHEET_PROPERTY_LIST } from "@plane/constants";
@@ -20,6 +21,8 @@ import { useBulkOperationStatus } from "@/hooks/use-bulk-operation-status";
 // local imports
 import type { TRenderQuickActions } from "../list/list-view-types";
 import { QuickAddIssueRoot, SpreadsheetAddIssueButton } from "../quick-add";
+import type { TSpreadsheetColumnKey } from "./column-order";
+import { applyColumnOrder, reorderColumn } from "./column-order";
 import { SpreadsheetTable } from "./spreadsheet-table";
 
 type Props = {
@@ -67,13 +70,31 @@ export const SpreadsheetView = observer(function SpreadsheetView(props: Props) {
 
   const isEstimateEnabled: boolean = currentProjectDetails?.estimate !== null;
 
-  const spreadsheetColumnsList = isWorkspaceLevel
-    ? SPREADSHEET_PROPERTY_LIST
-    : SPREADSHEET_PROPERTY_LIST.filter((property) => {
-        if (property === "cycle" && !currentProjectDetails?.cycle_view) return false;
-        if (property === "modules" && !currentProjectDetails?.module_view) return false;
-        return true;
-      });
+  const availableColumnsList = useMemo(
+    () =>
+      isWorkspaceLevel
+        ? SPREADSHEET_PROPERTY_LIST
+        : SPREADSHEET_PROPERTY_LIST.filter((property) => {
+            if (property === "cycle" && !currentProjectDetails?.cycle_view) return false;
+            if (property === "modules" && !currentProjectDetails?.module_view) return false;
+            return true;
+          }),
+    [isWorkspaceLevel, currentProjectDetails?.cycle_view, currentProjectDetails?.module_view]
+  );
+
+  const spreadsheetColumnsList = useMemo(
+    () => applyColumnOrder(displayFilters.column_order, availableColumnsList),
+    [displayFilters.column_order, availableColumnsList]
+  );
+
+  const handleColumnReorder = useCallback(
+    (sourceProperty: TSpreadsheetColumnKey, destinationProperty: TSpreadsheetColumnKey, edge: Edge | null) => {
+      const reordered = reorderColumn(spreadsheetColumnsList, sourceProperty, destinationProperty, edge);
+      if (reordered === spreadsheetColumnsList) return;
+      handleDisplayFilterUpdate({ column_order: reordered });
+    },
+    [spreadsheetColumnsList, handleDisplayFilterUpdate]
+  );
 
   if (!issueIds || issueIds.length === 0) return <></>;
   return (
@@ -103,6 +124,7 @@ export const SpreadsheetView = observer(function SpreadsheetView(props: Props) {
                 canLoadMoreIssues={canLoadMoreIssues}
                 loadMoreIssues={loadMoreIssues}
                 spreadsheetColumnsList={spreadsheetColumnsList}
+                onColumnReorder={handleColumnReorder}
                 selectionHelpers={helpers}
                 isEpic={isEpic}
               />
