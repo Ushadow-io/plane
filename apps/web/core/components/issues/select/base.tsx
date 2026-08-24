@@ -43,6 +43,12 @@ export type TWorkItemLabelSelectBaseProps = {
   /** Text shown on the button when nothing is selected. Defaults to "Labels". */
   placeholder?: string;
   /**
+   * Icon shown on the button, in place of the generic label icon. The per-group
+   * dropdowns pass the group's own emoji/icon so the button says which group it is,
+   * both before and after labels are picked.
+   */
+  placeholderIcon?: React.ReactNode;
+  /**
    * When true the options are rendered as one flat list, with no group headers.
    * Used by the per-group dropdowns, where every option already belongs to one group.
    */
@@ -98,6 +104,7 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
     tabIndex,
     value,
     placeholder,
+    placeholderIcon,
     flat = false,
   } = props;
   // refs
@@ -216,7 +223,8 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
         {label ? (
           label
         ) : value && value.length > 0 ? (
-          <span className={cn("flex h-full items-center justify-center gap-2 text-11", buttonClassName)}>
+          <span className={cn("flex h-full items-center justify-center gap-1.5 text-11", buttonClassName)}>
+            {placeholderIcon}
             <IssueLabelsList
               labels={value.map((v) => labelsList?.find((l) => l.id === v)) ?? []}
               length={3}
@@ -230,7 +238,7 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
               buttonClassName
             )}
           >
-            <LabelPropertyIcon className="h-3 w-3 flex-shrink-0" />
+            {placeholderIcon ?? <LabelPropertyIcon className="h-3 w-3 flex-shrink-0" />}
             <span>{placeholder ?? t("labels")}</span>
           </div>
         )}
@@ -272,7 +280,12 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
                       return (
                         <div key={option.id} className="border-y border-subtle">
                           <div className="flex items-center gap-2 truncate p-2 text-primary select-none">
-                            <Component className="h-3 w-3" /> {option.name}
+                            {option.logo_props?.in_use ? (
+                              <LabelIcon label={option} size={10} />
+                            ) : (
+                              <Component className="h-3 w-3" />
+                            )}{" "}
+                            {option.name}
                           </div>
                           <div>
                             {children.map((child) => (

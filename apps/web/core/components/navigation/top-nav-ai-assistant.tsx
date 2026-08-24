@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { Sparkles } from "lucide-react";
 // plane imports
@@ -13,13 +14,21 @@ import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 // components
 import { EditorAIMenu } from "@/components/pages/editor/ai/menu";
+// hooks
+import { EPageStoreType, usePageStore } from "@/hooks/store";
 
-// Global entry point, always available regardless of what's open -- there's no
-// document to insert a response into here, so it's launched with editorRef:
-// null (AskPiMenu hides the insert/replace controls when that's the case).
-export function TopNavAIAssistant() {
-  const { workspaceSlug } = useParams();
+// Global entry point, always available regardless of what's open. When a page
+// is the current route (pageId present in the URL), we look that page up and
+// hand its editorRef through so responses can still be written into it --
+// otherwise there's nothing to insert into, and editorRef stays null (AskPiMenu
+// hides the insert/replace controls when that's the case).
+export const TopNavAIAssistant = observer(function TopNavAIAssistant() {
+  const { workspaceSlug, pageId } = useParams();
   const [isOpen, setIsOpen] = useState(false);
+  // store hooks
+  const { getPageById } = usePageStore(EPageStoreType.PROJECT);
+  // derived values
+  const currentPage = pageId ? getPageById(pageId.toString()) : undefined;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -46,7 +55,7 @@ export function TopNavAIAssistant() {
         positionerClassName="z-[9999]"
       >
         <EditorAIMenu
-          editorRef={null}
+          editorRef={currentPage?.editor.editorRef ?? null}
           isOpen={isOpen}
           onClose={() => setIsOpen(false)}
           workspaceSlug={workspaceSlug?.toString() ?? ""}
@@ -54,4 +63,4 @@ export function TopNavAIAssistant() {
       </Popover.Panel>
     </Popover>
   );
-}
+});

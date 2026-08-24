@@ -12,6 +12,7 @@ import { useTranslation } from "@plane/i18n";
 import type { IIssueLabel } from "@plane/types";
 import { EUserPermissions } from "@plane/types";
 // hooks
+import { LabelIcon } from "@/components/labels/label-icon";
 import { useLabel } from "@/hooks/store/use-label";
 import { useUserPermissions } from "@/hooks/store/user";
 // local imports
@@ -92,6 +93,7 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: TWorkI
           onChange={handleScopedChange(childIds)}
           onDropdownOpen={onDropdownOpen}
           placeholder={group.name}
+          placeholderIcon={<LabelIcon label={group} size={10} />}
           flat
           createLabel={(data) => handleCreateLabel({ ...data, parent: group.id })}
           createLabelEnabled={!!canCreateLabel}

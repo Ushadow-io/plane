@@ -199,7 +199,17 @@ class Adapter:
             # Generate unique filename
             filename = f"{uuid.uuid4().hex}-user-avatar.{extension}"
 
-            storage = S3Storage(request=self.request)
+            # No request here, deliberately. S3Storage(request=...) points boto3 at the
+            # BROWSER-facing host (under USE_MINIO=1 the endpoint becomes
+            # scheme://request.get_host()), which is right for presigned URLs a browser
+            # must open, and wrong for this: the upload and the metadata read happen
+            # server-side, so with a request the API pod talks to MinIO the long way
+            # round -- out through the ingress, back in through the proxy, re-signed
+            # against a public Host header. Plane's own server-side metadata path
+            # (bgtasks/storage_metadata_task.py) uses a bare S3Storage() for exactly
+            # this reason, and so does copy_s3_object.py. Without a request the client
+            # uses AWS_S3_ENDPOINT_URL, i.e. the in-cluster MinIO service.
+            storage = S3Storage()
 
             # Create file-like object from the size-bounded buffer
             file_obj = BytesIO(content)
@@ -252,6 +262,25 @@ class Adapter:
                 user_activation_email.delay(base_host(request=self.request), user.id)
             except Exception as e:
                 log_exception(e)
+
+        # Self-heal a missing Profile on every login.
+        #
+        # Profile is only created on the signup branch of complete_login_or_signup(),
+        # so any account that reached the database another way -- an import, an
+        # earlier build of the SSO provisioning, a half-finished signup -- ends up
+        # with no Profile row. That is not a quiet degradation: /api/users/me/profile/
+        # and /api/users/me/settings/ both do a bare Profile.objects.get() and the
+        # DoesNotExist surfaces as a 404, so the web app authenticates the user and
+        # then cannot load them. It reads to the user as "SSO is broken" even though
+        # the callback succeeded.
+        #
+        # Doing it here rather than in those endpoints keeps the read paths read-only,
+        # and repairs the account once instead of on every request.
+        try:
+            Profile.objects.get_or_create(user=user)
+        except Exception as e:
+            log_exception(e)
+
         return user
 
     def delete_old_avatar(self, user):
@@ -259,7 +288,9 @@ class Adapter:
         try:
             if user.avatar_asset:
                 asset = FileAsset.objects.get(pk=user.avatar_asset_id)
-                storage = S3Storage(request=self.request)
+                # Server-side delete, so the in-cluster endpoint -- see the note in
+                # download_and_upload_avatar above.
+                storage = S3Storage()
                 storage.delete_files(object_names=[asset.asset.name])
 
                 # Delete the user avatar

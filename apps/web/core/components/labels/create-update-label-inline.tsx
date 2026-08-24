@@ -9,11 +9,8 @@
 
 import React, { forwardRef, useEffect, useState } from "react";
 import { observer } from "mobx-react";
-import { TwitterPicker } from "react-color";
-import { SmilePlus } from "lucide-react";
 import type { SubmitHandler } from "react-hook-form";
 import { Controller, useForm } from "react-hook-form";
-import { Popover, Transition } from "@headlessui/react";
 // plane imports
 import { getRandomLabelColor, LABEL_COLOR_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -72,6 +69,7 @@ export const CreateUpdateLabelInline = observer(
     const { t } = useTranslation();
     // derived values
     const logoValue = watch("logo_props");
+    const colorValue = watch("color");
 
     const handleClose = () => {
       setLabelForm(false);
@@ -181,11 +179,14 @@ export const CreateUpdateLabelInline = observer(
               iconType="lucide"
               buttonClassName="flex items-center justify-center"
               label={
-                <span className="grid size-6 place-items-center rounded-sm text-placeholder hover:bg-layer-1">
+                <span
+                  className="grid size-6 place-items-center rounded-sm hover:bg-layer-1"
+                  title="Pick an icon or a colour"
+                >
                   {logoValue?.in_use ? (
                     <Logo logo={logoValue} size={16} type="lucide" />
                   ) : (
-                    <SmilePlus className="size-4" />
+                    <span className="size-4 rounded-full" style={{ backgroundColor: colorValue }} />
                   )}
                 </span>
               }
@@ -194,53 +195,23 @@ export const CreateUpdateLabelInline = observer(
                 setValue("logo_props", { in_use: val.type, [val.type]: logo });
                 setIsEmojiPickerOpen(false);
               }}
+              colorPicker={{
+                colors: LABEL_COLOR_OPTIONS,
+                value: colorValue,
+                onChange: (hex) => {
+                  setValue("color", hex);
+                  setIsEmojiPickerOpen(false);
+                },
+              }}
               defaultIconColor={logoValue?.in_use === "icon" ? logoValue?.icon?.color : undefined}
-              defaultOpen={logoValue?.in_use === "icon" ? EmojiIconPickerTypes.ICON : EmojiIconPickerTypes.EMOJI}
+              defaultOpen={
+                logoValue?.in_use === "emoji"
+                  ? EmojiIconPickerTypes.EMOJI
+                  : logoValue?.in_use === "icon"
+                    ? EmojiIconPickerTypes.ICON
+                    : EmojiIconPickerTypes.COLOR
+              }
             />
-          </div>
-          <div className="flex-shrink-0">
-            <Popover className="relative z-10 flex h-full w-full items-center justify-center">
-              {({ open }) => (
-                <>
-                  <Popover.Button
-                    className={`group inline-flex items-center text-14 font-medium focus:outline-none ${
-                      open ? "text-primary" : "text-secondary"
-                    }`}
-                  >
-                    <span
-                      className="h-4 w-4 rounded-full"
-                      style={{
-                        backgroundColor: watch("color"),
-                      }}
-                    />
-                  </Popover.Button>
-
-                  <Transition
-                    as={React.Fragment}
-                    enter="transition ease-out duration-200"
-                    enterFrom="opacity-0 translate-y-1"
-                    enterTo="opacity-100 translate-y-0"
-                    leave="transition ease-in duration-150"
-                    leaveFrom="opacity-100 translate-y-0"
-                    leaveTo="opacity-0 translate-y-1"
-                  >
-                    <Popover.Panel className="absolute top-full left-0 z-20 mt-3 w-screen max-w-xs px-2 sm:px-0">
-                      <Controller
-                        name="color"
-                        control={control}
-                        render={({ field: { value, onChange } }) => (
-                          <TwitterPicker
-                            colors={LABEL_COLOR_OPTIONS}
-                            color={value}
-                            onChange={(value) => onChange(value.hex)}
-                          />
-                        )}
-                      />
-                    </Popover.Panel>
-                  </Transition>
-                </>
-              )}
-            </Popover>
           </div>
           <div className="flex flex-1 flex-col justify-center">
             <Controller

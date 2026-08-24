@@ -140,7 +140,7 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
       const { itemKey } = props;
       const editorItems = getEditorMenuItems(editor);
 
-      const getEditorMenuItem = (itemKey: TEditorCommands) => editorItems.find((item) => item.key === itemKey);
+      const getEditorMenuItem = (key: TEditorCommands) => editorItems.find((item) => item.key === key);
 
       const item = getEditorMenuItem(itemKey);
       if (item) {
@@ -149,7 +149,7 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
         console.warn(`No command found for item: ${itemKey}`);
       }
     },
-    focus: (args) => editor?.commands.focus(args),
+    focus: (focusArgs) => editor?.commands.focus(focusArgs),
     getCoordsFromPos: (pos) => editor?.view.coordsAtPos(pos ?? editor.state.selection.from),
     getCurrentCursorPosition: () => editor?.state.selection.from,
     getAttributesWithExtendedMark: (mark, attribute) => {
@@ -181,10 +181,13 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
     insertText: (contentHTML, insertOnNextLine) => {
       if (!editor) return;
       const { from, to, empty } = editor.state.selection;
-      if (empty) return;
       if (insertOnNextLine) {
-        // move cursor to the end of the selection and insert a new line
+        // move cursor to the end of the selection (or the current cursor
+        // position, if nothing is selected) and insert a new line
         editor.chain().focus().setTextSelection(to).insertContent("<br />").insertContent(contentHTML).run();
+      } else if (empty) {
+        // nothing selected -- write at the current cursor/block instead of no-op
+        editor.chain().focus().insertContentAt(from, contentHTML).run();
       } else {
         // replace selected text with the content provided
         editor.chain().focus().deleteRange({ from, to }).insertContent(contentHTML).run();
@@ -195,7 +198,7 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
       const { itemKey } = props;
       const editorItems = getEditorMenuItems(editor);
 
-      const getEditorMenuItem = (itemKey: TEditorCommands) => editorItems.find((item) => item.key === itemKey);
+      const getEditorMenuItem = (key: TEditorCommands) => editorItems.find((item) => item.key === key);
       const item = getEditorMenuItem(itemKey);
       if (!item) return false;
 

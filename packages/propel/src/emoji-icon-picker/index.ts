@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+export * from "./color/color-root";
 export * from "./emoji-picker";
 export * from "./helper";
 export * from "./logo";

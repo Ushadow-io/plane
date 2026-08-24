@@ -1,3 +1,5 @@
+// oxlint-disable no-shadow
+// oxlint-disable unicorn/consistent-function-scoping
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -9,6 +11,7 @@ import type { TPlacement, TSide, TAlign } from "../utils/placement";
 export const EmojiIconPickerTypes = {
   EMOJI: "emoji",
   ICON: "icon",
+  COLOR: "color",
 } as const;
 
 export type TChangeHandlerProps =
@@ -24,7 +27,20 @@ export type TChangeHandlerProps =
       };
     };
 
-export type TEmojiIconPickerTypes = typeof EmojiIconPickerTypes.EMOJI | typeof EmojiIconPickerTypes.ICON;
+export type TEmojiIconPickerTypes =
+  | typeof EmojiIconPickerTypes.EMOJI
+  | typeof EmojiIconPickerTypes.ICON
+  | typeof EmojiIconPickerTypes.COLOR;
+
+/**
+ * Pass this to EmojiPicker to add a "Color" tab alongside Emoji and Icon, so a
+ * single control edits both the icon and the colour of the thing it belongs to.
+ */
+export type TColorPickerOptions = {
+  colors: string[];
+  value?: string;
+  onChange: (hex: string) => void;
+};
 
 export type TCustomEmojiPicker = {
   isOpen: boolean;
@@ -34,6 +50,7 @@ export type TCustomEmojiPicker = {
   closeOnSelect?: boolean;
   defaultIconColor?: string;
   defaultOpen?: TEmojiIconPickerTypes;
+  colorPicker?: TColorPickerOptions;
   disabled?: boolean;
   dropdownClassName?: string;
   label: React.ReactNode;

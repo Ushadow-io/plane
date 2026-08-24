@@ -43,7 +43,7 @@ build: guard-root ## Build the backend + frontend images only (no push, no deplo
 push: guard-root ## Push already-built images to the registry
 	@$(MAKE) -C "$(CHAKRA_ROOT)" plexus-plane-push
 
-check: guard-root ## Verify the working tree is clean enough to build from
+check: guard-root ## Report whether the working tree is clean (warn only, never blocks)
 	@$(MAKE) -C "$(CHAKRA_ROOT)" plexus-plane-check-clean
 
 rollback: guard-root ## Roll the cluster back one helm revision (does NOT revert the DB)
