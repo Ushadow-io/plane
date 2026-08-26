@@ -21,10 +21,14 @@ import { WorkItemLabelSelectBase } from "./base";
 
 type TWorkItemLabelSelectProps = Omit<TWorkItemLabelSelectBaseProps, "labelIds" | "getLabelById" | "onDropdownOpen"> & {
   projectId: string | undefined;
+  // "all" (default): every group + the ungrouped bucket, e.g. inbox quick-add.
+  // "top-row": only groups pinned via Project Settings > Labels > "Show in top row", no ungrouped bucket.
+  // "rest": every group EXCEPT the pinned ones, plus the ungrouped bucket.
+  groupsToShow?: "all" | "top-row" | "rest";
 };
 
 export const IssueLabelSelect = observer(function IssueLabelSelect(props: TWorkItemLabelSelectProps) {
-  const { projectId, value, onChange, ...rest } = props;
+  const { projectId, value, onChange, groupsToShow = "all", ...rest } = props;
   // router
   const { workspaceSlug } = useParams();
   // plane hooks
@@ -61,14 +65,21 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: TWorkI
   // A "group" is a label that has children. Its children are the selectable options.
   // Everything else with no parent is a plain, ungrouped label.
   const labels = (projectLabelIds ?? []).map((id) => getLabelById(id)).filter((l): l is IIssueLabel => !!l);
-  const groups = labels
+  const allGroups = labels
     .filter((l) => !l.parent && labels.some((child) => child.parent === l.id))
     .map((group) => ({
       group,
       childIds: labels.filter((child) => child.parent === group.id).map((child) => child.id),
     }));
-  const groupIds = new Set(groups.map((g) => g.group.id));
-  const ungroupedLabelIds = labels.filter((l) => !l.parent && !groupIds.has(l.id)).map((l) => l.id);
+  const groups =
+    groupsToShow === "top-row"
+      ? allGroups.filter(({ group }) => group.show_in_top_row)
+      : groupsToShow === "rest"
+        ? allGroups.filter(({ group }) => !group.show_in_top_row)
+        : allGroups;
+  const groupIds = new Set(allGroups.map((g) => g.group.id));
+  const ungroupedLabelIds =
+    groupsToShow === "top-row" ? [] : labels.filter((l) => !l.parent && !groupIds.has(l.id)).map((l) => l.id);
 
   // Replace only the ids owned by this dropdown, leave every other selected label untouched.
   const handleScopedChange = (scopeIds: string[]) => (nextScopeValue: string[]) => {
@@ -99,18 +110,20 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: TWorkI
           createLabelEnabled={!!canCreateLabel}
         />
       ))}
-      <WorkItemLabelSelectBase
-        {...rest}
-        getLabelById={getLabelById}
-        labelIds={ungroupedLabelIds}
-        value={scopedValue(ungroupedLabelIds)}
-        onChange={handleScopedChange(ungroupedLabelIds)}
-        onDropdownOpen={onDropdownOpen}
-        placeholder={t("labels")}
-        flat
-        createLabel={handleCreateLabel}
-        createLabelEnabled={!!canCreateLabel}
-      />
+      {groupsToShow !== "top-row" && (
+        <WorkItemLabelSelectBase
+          {...rest}
+          getLabelById={getLabelById}
+          labelIds={ungroupedLabelIds}
+          value={scopedValue(ungroupedLabelIds)}
+          onChange={handleScopedChange(ungroupedLabelIds)}
+          onDropdownOpen={onDropdownOpen}
+          placeholder={t("labels")}
+          flat
+          createLabel={handleCreateLabel}
+          createLabelEnabled={!!canCreateLabel}
+        />
+      )}
     </div>
   );
 });

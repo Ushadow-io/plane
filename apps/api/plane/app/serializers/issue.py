@@ -370,6 +370,7 @@ class LabelSerializer(BaseSerializer):
             "project_id",
             "workspace_id",
             "sort_order",
+            "show_in_top_row",
         ]
         read_only_fields = ["workspace", "project"]
 

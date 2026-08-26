@@ -9,3 +9,5 @@ export * from "./parent-tag";
 export * from "./title-input";
 export * from "./description-editor";
 export * from "./default-properties";
+export * from "./top-properties";
+export * from "./attachment-upload";

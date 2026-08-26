@@ -30,11 +30,13 @@ import {
 } from "@plane/utils";
 // components
 import {
+  IssueAttachmentUploadButton,
   IssueDefaultProperties,
   IssueDescriptionEditor,
   IssueParentTag,
   IssueProjectSelect,
   IssueTitleInput,
+  IssueTopProperties,
 } from "@/components/issues/issue-modal/components";
 // helpers
 // hooks
@@ -380,6 +382,13 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                   />
                 </div>
               )}
+              <IssueTopProperties
+                control={control}
+                id={data?.id}
+                projectId={projectId}
+                workspaceSlug={workspaceSlug?.toString() ?? ""}
+                handleFormChange={handleFormChange}
+              />
               <div className="space-y-1">
                 <IssueTitleInput
                   control={control}
@@ -425,7 +434,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                 activeAdditionalPropertiesLength > 0 && "shadow-raised-100"
               )}
             >
-              <div className="pb-3">
+              <div className="flex flex-wrap items-start justify-between gap-2 pb-3">
                 <IssueDefaultProperties
                   control={control}
                   id={data?.id}
@@ -438,6 +447,12 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                   isDraft={isDraft}
                   handleFormChange={handleFormChange}
                   setSelectedParentIssue={setSelectedParentIssue}
+                />
+                <IssueAttachmentUploadButton
+                  workspaceSlug={workspaceSlug?.toString() ?? ""}
+                  projectId={projectId}
+                  isDraft={isDraft}
+                  onAssetUpload={onAssetUpload}
                 />
               </div>
               {showActionButtons && (

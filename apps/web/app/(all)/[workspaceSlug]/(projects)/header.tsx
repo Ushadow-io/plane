@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Shapes } from "lucide-react";
+import { Plus, Shapes } from "lucide-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
@@ -14,6 +14,7 @@ import { Breadcrumbs, Header } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 // hooks
+import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useHome } from "@/hooks/store/use-home";
 
 export const WorkspaceDashboardHeader = observer(function WorkspaceDashboardHeader() {
@@ -21,6 +22,7 @@ export const WorkspaceDashboardHeader = observer(function WorkspaceDashboardHead
   const { t } = useTranslation();
   // hooks
   const { toggleWidgetSettings } = useHome();
+  const { toggleCreateIssueModal } = useCommandPalette();
 
   return (
     <>
@@ -37,6 +39,15 @@ export const WorkspaceDashboardHeader = observer(function WorkspaceDashboardHead
           </div>
         </Header.LeftItem>
         <Header.RightItem>
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={() => toggleCreateIssueModal(true)}
+            className="my-auto mb-0"
+            prependIcon={<Plus />}
+          >
+            <div className="hidden sm:hidden md:block">{t("create_new_issue")}</div>
+          </Button>
           <Button
             variant="secondary"
             size="lg"

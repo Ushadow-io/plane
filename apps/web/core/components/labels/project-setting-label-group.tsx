@@ -10,6 +10,7 @@ import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import { TrashIcon, ChevronDownIcon } from "@plane/propel/icons";
 import type { IIssueLabel } from "@plane/types";
+import { ToggleSwitch } from "@plane/ui";
 // components
 import type { TLabelOperationsCallbacks } from "./create-update-label-inline";
 import type { ICustomMenuItem } from "./label-block/label-item-block";
@@ -87,6 +88,25 @@ export const ProjectSettingLabelGroup = observer(function ProjectSettingLabelGro
                         disabled={!isEditable}
                         onUpdate={(data) => labelOperationsCallbacks.updateLabel(label.id, data)}
                       />
+
+                      {isEditable && (
+                        <div
+                          className="flex flex-shrink-0 items-center gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                          role="presentation"
+                        >
+                          <span className="text-caption-sm-regular text-secondary">Show in top row</span>
+                          <ToggleSwitch
+                            value={!!label.show_in_top_row}
+                            onChange={() =>
+                              labelOperationsCallbacks.updateLabel(label.id, {
+                                show_in_top_row: !label.show_in_top_row,
+                              })
+                            }
+                            size="sm"
+                          />
+                        </div>
+                      )}
 
                       <Disclosure.Button>
                         <span>

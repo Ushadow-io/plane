@@ -23,6 +23,7 @@ class Label(WorkspaceBaseModel):
     sort_order = models.FloatField(default=65535)
     external_source = models.CharField(max_length=255, null=True, blank=True)
     external_id = models.CharField(max_length=255, blank=True, null=True)
+    show_in_top_row = models.BooleanField(default=False)
 
     class Meta:
         constraints = [

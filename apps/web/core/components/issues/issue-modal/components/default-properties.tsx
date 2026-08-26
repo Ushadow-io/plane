@@ -20,10 +20,7 @@ import { getDate, renderFormattedPayloadDate, getTabIndex } from "@plane/utils";
 import { CycleDropdown } from "@/components/dropdowns/cycle";
 import { DateDropdown } from "@/components/dropdowns/date";
 import { EstimateDropdown } from "@/components/dropdowns/estimate";
-import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { ModuleDropdown } from "@/components/dropdowns/module/dropdown";
-import { PriorityDropdown } from "@/components/dropdowns/priority";
-import { StateDropdown } from "@/components/dropdowns/state/dropdown";
 import { ParentIssuesListModal } from "@/components/issues/parent-issues-list-modal";
 import { IssueLabelSelect } from "@/components/issues/select";
 import { IssueIdentifier } from "@/components/issues/issue-detail/issue-identifier";
@@ -87,63 +84,6 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
     <div className="flex flex-wrap items-center gap-2">
       <Controller
         control={control}
-        name="state_id"
-        render={({ field: { value, onChange } }) => (
-          <div className="h-7">
-            <StateDropdown
-              value={value}
-              onChange={(stateId) => {
-                onChange(stateId);
-                handleFormChange();
-              }}
-              projectId={projectId ?? undefined}
-              buttonVariant="border-with-text"
-              tabIndex={getIndex("state_id")}
-              isForWorkItemCreation={!id}
-            />
-          </div>
-        )}
-      />
-      <Controller
-        control={control}
-        name="priority"
-        render={({ field: { value, onChange } }) => (
-          <div className="h-7">
-            <PriorityDropdown
-              value={value}
-              onChange={(priority) => {
-                onChange(priority);
-                handleFormChange();
-              }}
-              buttonVariant="border-with-text"
-              tabIndex={getIndex("priority")}
-            />
-          </div>
-        )}
-      />
-      <Controller
-        control={control}
-        name="assignee_ids"
-        render={({ field: { value, onChange } }) => (
-          <div className="h-7">
-            <MemberDropdown
-              projectId={projectId ?? undefined}
-              value={value}
-              onChange={(assigneeIds) => {
-                onChange(assigneeIds);
-                handleFormChange();
-              }}
-              buttonVariant={value?.length > 0 ? "transparent-without-text" : "border-with-text"}
-              buttonClassName={value?.length > 0 ? "hover:bg-transparent" : ""}
-              placeholder={t("assignees")}
-              multiple
-              tabIndex={getIndex("assignee_ids")}
-            />
-          </div>
-        )}
-      />
-      <Controller
-        control={control}
         name="label_ids"
         render={({ field: { value, onChange } }) => (
           <div className="h-7">
@@ -156,6 +96,7 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
               projectId={projectId ?? undefined}
               tabIndex={getIndex("label_ids")}
               createLabelEnabled={!!canCreateLabel}
+              groupsToShow="rest"
             />
           </div>
         )}
