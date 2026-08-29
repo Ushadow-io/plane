@@ -73,6 +73,8 @@ from .invite import WorkspaceInvitationsViewset
 
 from .sticky import StickyViewSet
 
+from .subscriber import WorkItemSubscriberAPIEndpoint
+
 from .release import (
     ReleaseCandidateAPIEndpoint,
     ReleaseChangelogAPIEndpoint,

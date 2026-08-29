@@ -13,10 +13,12 @@ import type { TIssue } from "@plane/types";
 import { getTabIndex } from "@plane/utils";
 // components
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
+import { ModuleDropdown } from "@/components/dropdowns/module/dropdown";
 import { PriorityDropdown } from "@/components/dropdowns/priority";
 import { StateDropdown } from "@/components/dropdowns/state/dropdown";
 import { IssueLabelSelect } from "@/components/issues/select";
 // hooks
+import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 
@@ -34,7 +36,10 @@ export const IssueTopProperties = observer(function IssueTopProperties(props: TI
   const { t } = useTranslation();
   const { isMobile } = usePlatformOS();
   const { allowPermissions } = useUserPermissions();
+  const { getProjectById } = useProject();
   const { getIndex } = getTabIndex(ETabIndices.ISSUE_FORM, isMobile);
+
+  const projectDetails = getProjectById(projectId);
 
   const canCreateLabel =
     projectId && allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId);
@@ -115,6 +120,29 @@ export const IssueTopProperties = observer(function IssueTopProperties(props: TI
           />
         )}
       />
+      {projectDetails?.module_view && workspaceSlug && (
+        <Controller
+          control={control}
+          name="module_ids"
+          render={({ field: { value, onChange } }) => (
+            <div className="h-7">
+              <ModuleDropdown
+                projectId={projectId ?? undefined}
+                value={value ?? []}
+                onChange={(moduleIds) => {
+                  onChange(moduleIds);
+                  handleFormChange();
+                }}
+                placeholder={t("modules")}
+                buttonVariant="border-with-text"
+                tabIndex={getIndex("module_ids")}
+                multiple
+                showCount
+              />
+            </div>
+          )}
+        />
+      )}
     </div>
   );
 });

@@ -64,6 +64,7 @@ export const ModuleDropdownBase = observer(function ModuleDropdownBase(props: TM
     multiple,
     onChange,
     onClose,
+    onDropdownOpen,
     placeholder = "",
     placement,
     projectId,
@@ -194,6 +195,7 @@ export const ModuleDropdownBase = observer(function ModuleDropdownBase(props: TM
           getModuleById={getModuleById}
           moduleIds={moduleIds}
           value={value}
+          onDropdownOpen={onDropdownOpen}
         />
       )}
     </ComboDropDown>
