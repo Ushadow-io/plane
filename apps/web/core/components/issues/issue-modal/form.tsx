@@ -259,6 +259,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
             ...(isCreateMoreToggleEnabled ? { ...data } : {}),
             project_id: getValues<"project_id">("project_id"),
             type_id: getValues<"type_id">("type_id"),
+            ...(isCreateMoreToggleEnabled ? { label_ids: getValues<"label_ids">("label_ids") } : {}),
             description_html: data?.description_html ?? "<p></p>",
           });
           editorRef?.current?.clearEditor();

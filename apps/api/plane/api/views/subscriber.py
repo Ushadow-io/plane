@@ -2,6 +2,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+# Python imports
+import uuid
+
+# Django imports
+from django.db import transaction
+
 # Third party imports
 from rest_framework import status
 from rest_framework.response import Response
@@ -9,7 +15,15 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema
 
 # Module imports
 from plane.api.views.base import BaseAPIView
-from plane.db.models import Issue, IssueSubscriber, ProjectMember, User
+from plane.db.models import (
+    Issue,
+    IssueSubscriber,
+    Profile,
+    Project,
+    ProjectMember,
+    User,
+    WorkspaceMember,
+)
 from plane.utils.openapi import (
     FORBIDDEN_RESPONSE,
     PROJECT_ID_PARAMETER,
@@ -36,6 +50,12 @@ class WorkItemSubscriberAPIEndpoint(BaseAPIView):
     `plane/bgtasks/notification_task.py` -- a subscriber is only mailed if they
     are ALSO an active `ProjectMember`, which is why that is validated here
     rather than left to fail silently later.
+
+    With `provision`, POST also creates the account and memberships that the
+    subscription depends on, so that ticking a consent box in another product
+    is the whole of the join -- no invitation mail, no click. See
+    `_provision_guest` for why that is sound and what it deliberately does not
+    do.
     """
 
     permission_classes = [ProjectEntityPermission]

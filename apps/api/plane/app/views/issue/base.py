@@ -28,6 +28,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.gzip import gzip_page
 
 # Third Party imports
+import pytz
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -45,6 +46,7 @@ from plane.bgtasks.issue_description_version_task import issue_description_versi
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.webhook_task import model_activity
 from plane.db.models import (
+    Cycle,
     CycleIssue,
     FileAsset,
     IntakeIssue,
@@ -59,6 +61,7 @@ from plane.db.models import (
     ModuleIssue,
     Project,
     ProjectMember,
+    State,
     UserRecentVisit,
 )
 from plane.utils.display_properties import workspace_default_display_properties
@@ -676,11 +679,37 @@ class IssueViewSet(BaseViewSet):
             return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
 
         current_instance = json.dumps(IssueDetailSerializer(issue).data, cls=DjangoJSONEncoder)
+        had_no_cycle = issue.cycle_id is None
 
         requested_data = json.dumps(self.request.data, cls=DjangoJSONEncoder)
         serializer = IssueCreateSerializer(issue, data=request.data, partial=True, context={"project_id": project_id})
         if serializer.is_valid():
             serializer.save()
+            # If the issue was moved to a "Todo" (unstarted) state and has no cycle yet,
+            # drop it into the project's current cycle instead of leaving it cycle-less.
+            if had_no_cycle and request.data.get("state_id"):
+                new_state = State.objects.filter(pk=request.data.get("state_id")).only("group").first()
+                if new_state and new_state.group == "unstarted":
+                    project_timezone = Project.objects.only("timezone").get(pk=project_id).timezone
+                    current_time_in_utc = (
+                        timezone.now().astimezone(pytz.timezone(project_timezone)).astimezone(pytz.utc)
+                    )
+                    current_cycle = Cycle.objects.filter(
+                        project_id=project_id,
+                        start_date__lte=current_time_in_utc,
+                        end_date__gte=current_time_in_utc,
+                    ).first()
+                    if current_cycle and not CycleIssue.objects.filter(
+                        issue_id=issue.id, deleted_at__isnull=True
+                    ).exists():
+                        CycleIssue.objects.create(
+                            project_id=project_id,
+                            workspace_id=issue.workspace_id,
+                            cycle_id=current_cycle.id,
+                            issue_id=issue.id,
+                            created_by_id=request.user.id,
+                            updated_by_id=request.user.id,
+                        )
             # Check if the update is a migration description update
             is_migration_description_update = skip_activity and is_description_update
             # Log all the updates
