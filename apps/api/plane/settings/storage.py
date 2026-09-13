@@ -22,7 +22,15 @@ class S3Storage(S3Boto3Storage):
 
     """S3 storage class to generate presigned URLs for S3 objects"""
 
-    def __init__(self, request=None):
+    def __init__(self, request=None, is_server=False):
+        # `is_server` is passed by the three public-API asset views
+        # (plane/api/views/asset.py) but was never accepted here, so every call
+        # to GET /api/v1/workspaces/{slug}/assets/{id}/ and the two upload
+        # endpoints raised TypeError and answered 500. It is accepted and
+        # currently has no effect: those callers hand the presigned URL to a
+        # client OUTSIDE Plane's network, so the public endpoint -- the existing
+        # behaviour -- is the correct one for them anyway.
+        self.is_server = is_server
         # Get the AWS credentials and bucket name from the environment
         self.aws_access_key_id = os.environ.get("AWS_ACCESS_KEY_ID")
         # Use the AWS_SECRET_ACCESS_KEY environment variable for the secret key
