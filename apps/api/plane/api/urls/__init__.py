@@ -16,6 +16,7 @@ from .work_item import urlpatterns as work_item_patterns
 from .invite import urlpatterns as invite_patterns
 from .sticky import urlpatterns as sticky_patterns
 from .subscriber import urlpatterns as subscriber_patterns
+from .aider_job import urlpatterns as aider_job_patterns
 
 urlpatterns = [
     *asset_patterns,
@@ -32,4 +33,5 @@ urlpatterns = [
     *invite_patterns,
     *sticky_patterns,
     *subscriber_patterns,
+    *aider_job_patterns,
 ]

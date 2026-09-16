@@ -14,6 +14,7 @@ from .module import urlpatterns as module_urls
 from .notification import urlpatterns as notification_urls
 from .page import urlpatterns as page_urls
 from .project import urlpatterns as project_urls
+from .aider import urlpatterns as aider_urls
 from .release import urlpatterns as release_urls
 from .search import urlpatterns as search_urls
 from .state import urlpatterns as state_urls
@@ -25,6 +26,7 @@ from .timezone import urlpatterns as timezone_urls
 from .exporter import urlpatterns as exporter_urls
 
 urlpatterns = [
+    *aider_urls,
     *analytic_urls,
     *asset_urls,
     *cycle_urls,

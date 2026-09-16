@@ -251,3 +251,5 @@ from .release.base import (
     ReleaseWorkItemEndpoint,
     WorkItemReleaseEndpoint,
 )
+
+from .aider.base import WorkItemAiderJobEndpoint

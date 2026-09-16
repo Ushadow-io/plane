@@ -1,0 +1,21 @@
+# Copy to config.toml. Secrets go in env vars, not here:
+#   PLANE_API_KEY   Plane API token of a WORKSPACE ADMIN (Profile settings → API tokens)
+#   plus whatever aider needs, e.g. ANTHROPIC_API_KEY
+
+poll_seconds = 10
+worktree_root = "~/.aider-worktrees"
+
+[plane]
+api_url = "https://plane.psyclopedia.com"   # where /api/v1/ is served
+web_url = "https://plane.psyclopedia.com"   # used for links in the PR body
+workspaces = ["my-workspace"]                # workspace slugs to poll
+
+[aider]
+model = "sonnet"
+timeout_seconds = 1800
+extra_args = []
+
+# One block per Plane project. Key = the project identifier (the "PSY" in PSY-123).
+[projects.PSY]
+path = "~/repos/psyclo/app"
+base_branch = "main"

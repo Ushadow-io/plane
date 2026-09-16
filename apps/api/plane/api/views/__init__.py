@@ -83,3 +83,5 @@ from .release import (
     ReleaseTagAPIEndpoint,
     ReleaseWorkItemAPIEndpoint,
 )
+
+from .aider_job import AiderJobClaimAPIEndpoint, AiderJobDetailAPIEndpoint, AiderJobQueueAPIEndpoint

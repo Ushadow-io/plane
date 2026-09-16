@@ -4,7 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { Bot } from "lucide-react";
 import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
@@ -22,6 +23,7 @@ import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
+import { DelegateToAiderModal } from "./delegate-to-aider-modal";
 import { WorkItemDetailQuickActions } from "../issue-layouts/quick-action-dropdowns";
 import { IssueSubscription } from "./subscription";
 
@@ -34,6 +36,9 @@ type Props = {
 export const IssueDetailQuickActions = observer(function IssueDetailQuickActions(props: Props) {
   const { workspaceSlug, projectId, issueId } = props;
   const { t } = useTranslation();
+
+  // state
+  const [isAiderModalOpen, setIsAiderModalOpen] = useState(false);
 
   // ref
   const parentRef = useRef<HTMLDivElement>(null);
@@ -147,6 +152,11 @@ export const IssueDetailQuickActions = observer(function IssueDetailQuickActions
             <IssueSubscription workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
           )}
           <div className="flex flex-wrap items-center gap-2 text-tertiary">
+            {!issue?.archived_at && (
+              <Tooltip tooltipContent="Delegate to aider" isMobile={isMobile}>
+                <IconButton variant="secondary" size="lg" onClick={() => setIsAiderModalOpen(true)} icon={Bot} />
+              </Tooltip>
+            )}
             <Tooltip tooltipContent={t("common.actions.copy_link")} isMobile={isMobile}>
               <IconButton variant="secondary" size="lg" onClick={handleCopyText} icon={CopyLinkIcon} />
             </Tooltip>
@@ -160,6 +170,13 @@ export const IssueDetailQuickActions = observer(function IssueDetailQuickActions
           </div>
         </div>
       </div>
+      <DelegateToAiderModal
+        isOpen={isAiderModalOpen}
+        onClose={() => setIsAiderModalOpen(false)}
+        workspaceSlug={workspaceSlug}
+        projectId={projectId}
+        issueId={issueId}
+      />
     </>
   );
 });

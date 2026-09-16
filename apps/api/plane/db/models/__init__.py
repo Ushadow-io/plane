@@ -99,3 +99,5 @@ from .release import (
     ReleaseTag,
     ReleaseWorkItem,
 )
+
+from .aider_job import AiderJob, AiderJobStatus
