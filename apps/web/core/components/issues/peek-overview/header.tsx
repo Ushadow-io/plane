@@ -4,10 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { MoveDiagonal, MoveRight } from "lucide-react";
+import { Bot, MoveDiagonal, MoveRight } from "lucide-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { CenterPanelIcon, CopyLinkIcon, FullScreenPanelIcon, SidePanelIcon } from "@plane/propel/icons";
@@ -24,6 +24,7 @@ import { useProject } from "@/hooks/store/use-project";
 import { useUser } from "@/hooks/store/user";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
+import { DelegateToAiderModal } from "../issue-detail/delegate-to-aider-modal";
 import { IssueSubscription } from "../issue-detail/subscription";
 import { WorkItemDetailQuickActions } from "../issue-layouts/quick-action-dropdowns";
 import { NameDescriptionUpdateStatus } from "../issue-update-status";
@@ -87,6 +88,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
   } = props;
   // ref
   const parentRef = useRef<HTMLDivElement>(null);
+  const [isAiderModalOpen, setIsAiderModalOpen] = useState(false);
   const { t } = useTranslation();
   // store hooks
   const { data: currentUser } = useUser();
@@ -205,6 +207,11 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
           {currentUser && !isArchived && (
             <IssueSubscription workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
           )}
+          {!isArchived && !disabled && (
+            <Tooltip tooltipContent="Delegate to aider" isMobile={isMobile}>
+              <IconButton variant="secondary" size="lg" onClick={() => setIsAiderModalOpen(true)} icon={Bot} />
+            </Tooltip>
+          )}
           <Tooltip tooltipContent={t("common.actions.copy_link")} isMobile={isMobile}>
             <IconButton variant="secondary" size="lg" onClick={handleCopyText} icon={CopyLinkIcon} />
           </Tooltip>
@@ -225,6 +232,13 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
           )}
         </div>
       </div>
+      <DelegateToAiderModal
+        isOpen={isAiderModalOpen}
+        onClose={() => setIsAiderModalOpen(false)}
+        workspaceSlug={workspaceSlug}
+        projectId={projectId}
+        issueId={issueId}
+      />
     </div>
   );
 });
